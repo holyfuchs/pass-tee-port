@@ -6,12 +6,10 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 contract PassTeePort {
     
     mapping(address => bool) public signers;
-    struct PassportData {
-        string name;
-        bool over18;
-    }
-    mapping(uint256 => address) public passportID_to_wallet;
-    mapping(address => PassportData) public wallet_to_passport;
+
+    mapping(bytes32 => address) public passportID_to_wallet;
+    // using bytes to avoid hardcoding data layout
+    mapping(address => bytes) public wallet_to_passport;
 
     constructor() {}
 
@@ -22,10 +20,13 @@ contract PassTeePort {
         // add the enclave as valid signer
     }
 
+    function debug_add_signer(address _signer) external {
+        signers[_signer] = true;
+    }
+
     struct PassportDataID {
-        uint256 id;
-        bool over18;
-        string name;
+        bytes32 id;
+        bytes data;
     }
     
     function submit_passport_data(
@@ -36,17 +37,14 @@ contract PassTeePort {
         address _signer = ECDSA.recover(data_hash, _signature);
 
         // need to manage to verify the enclave as signer
-        // require(signers[_signer], "unrecognized signer");
+        require(signers[_signer], "unrecognized signer");
         emit PassportDataVerified(msg.sender, _signer);
         address previous_wallet = passportID_to_wallet[_data.id];
         if (previous_wallet != address(0)) {
             delete wallet_to_passport[previous_wallet];
         }
         passportID_to_wallet[_data.id] = msg.sender;
-        wallet_to_passport[msg.sender] = PassportData({
-            over18: _data.over18,
-            name: _data.name
-        });
+        wallet_to_passport[msg.sender] = _data.data;
     }
 
     // function get_passport_data(
@@ -60,10 +58,9 @@ contract PassTeePort {
         PassportDataID calldata _data
     ) public pure returns (bytes32) {
         return keccak256(
-                    abi.encode(
+                    abi.encodePacked(
                         _data.id,
-                        _data.over18,
-                        _data.name
+                        _data.data
                     )
                 );
     }
