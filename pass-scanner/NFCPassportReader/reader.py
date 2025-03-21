@@ -1,3 +1,4 @@
+from .coreNfc.paceHandler import PaceHandler
 from .coreNfc.tagReader import TagReader
 from .passport import Passport
 
@@ -11,5 +12,7 @@ class PassportReader:
         passport = Passport(mrz)
 
         accessData = tagReader.readCardAccess()
+        paceHandler = PaceHandler(accessData, tagReader)
+        paceHandler.handlePace(mrz)
 
         return passport

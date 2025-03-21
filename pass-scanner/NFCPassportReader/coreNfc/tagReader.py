@@ -1,4 +1,4 @@
-from .helpers import generate_length_field, asn1Length
+from .helpers import generate_length_field, asn1Length, bytesFromOID, wrapDO, unwrapDO
 from smartcard.CardConnection import CardConnection
 from smartcard.System import readers
 from .cardAccess import CardAccess
@@ -115,7 +115,7 @@ class TagReader:
         data, sw1, sw2 = self.connection.transmit(data)
         return data, StatusCode(sw1 * 256 + sw2)
 	
-    def __sendCommand(self, instruction: Instruction, parameter1: int, parameter2: int, data: bytes, responseLength: Length = Length.NO_LE):
+    def __sendCommand(self, instruction: Instruction, parameter1: int, parameter2: int, data: bytes, responseLength: Length = Length.NO_LE, isLast: bool = True):
         if (len(data) > Length.EXTENDED_MAX_LC.value):
             raise ValueError(f"Command data exceeds maximum value of 0x{Length.EXTENDED_MAX_LC.value:X}")
 
@@ -123,9 +123,8 @@ class TagReader:
             raise ValueError(f"Response length exceeds maximum value of 0x{Length.EXTENDED_MAX_LE.value:X}")
         
         command = []
-
         header = [
-            0x00, # CLA
+            0x00 if isLast else 0x10, # CLA
             instruction.value, # INS
             parameter1, # P1
             parameter2, # P2
@@ -177,7 +176,7 @@ class TagReader:
 
         return total_data
 
-    def readCardAccess(self) -> List[int]:
+    def readCardAccess(self) -> CardAccess:
         logging.debug("Reading card access")
 
         # Select Master File
@@ -187,4 +186,19 @@ class TagReader:
         
         # Read EC.CardAccess
         data = self.selectFileAndRead([0x01, 0x1C])
+        logging.debug(f"Card access data: {data}")
         return CardAccess(data)
+    
+    def sendMSESetATMutualAuth(self, oid: str, keyType: int) -> Tuple[List[int], StatusCode]:
+        oidBytes = bytesFromOID(oid, True)
+        keyTypeBytes = wrapDO(0x83, [keyType])
+        totalData = oidBytes + bytes(keyTypeBytes)
+
+        return self.__sendCommand(Instruction.MSE_SET, 0xC1, 0xA4, totalData)
+    
+    def sendGeneralAuthenticate(self, data: List[int], responseLength: Length = Length.SHORT_MAX_LE, isLast: bool = True) -> Tuple[List[int], StatusCode]:
+        commandData = bytes(wrapDO(0x7C, data))
+
+        data, status = self.__sendCommand(Instruction.GENERAL_AUTHENTICATE, 0x00, 0x00, commandData, responseLength, isLast)
+        data = unwrapDO(0x7C, data)
+        return data, status

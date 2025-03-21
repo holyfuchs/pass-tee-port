@@ -1,3 +1,5 @@
+from pyasn1.type.univ import ObjectIdentifier
+from pyasn1.codec.der.encoder import encode
 from typing import Tuple
 
 
@@ -32,3 +34,52 @@ def asn1Length(data: bytes) -> Tuple[int, int]:
         return bin_to_hex(data[1:3]), 3  # Two-byte length
 
     raise ValueError("Cannot decode ASN.1 length")
+
+def bytesFromOID(oid: str, tagReplace: bool = False) -> bytes:
+    encoded = list(encode(ObjectIdentifier(oid)))
+    if tagReplace and len(encoded) > 1:
+        encoded[0] = 0x80
+    return bytes(encoded)
+
+def wrapDO(tag: int, arr: list[int]) -> list[int]:
+    value = bytes(arr)
+    length = len(value)
+
+    if length < 128:
+        length_bytes = bytes([length])
+    else:
+        len_encoded = length.to_bytes((length.bit_length() + 7) // 8, byteorder='big')
+        length_bytes = bytes([0x80 | len(len_encoded)]) + len_encoded
+
+    tlv = bytes([tag]) + length_bytes + value
+    return list(tlv)
+
+def unwrapDO(tag: int, wrapped_data: list[int]) -> list[int]:
+    data = bytes(wrapped_data)
+    
+    if len(data) < 2:
+        raise ValueError("Data too short for valid TLV")
+    
+    read_tag = data[0]
+    if read_tag != tag:
+        raise ValueError(f"Unexpected tag: got {read_tag:#x}, expected {tag:#x}")
+
+    # Parse length
+    length_byte = data[1]
+    offset = 2
+
+    if length_byte & 0x80 == 0:  # Short form
+        length = length_byte
+    else:  # Long form
+        num_bytes = length_byte & 0x7F
+        if len(data) < offset + num_bytes:
+            raise ValueError("Invalid length field")
+        length = int.from_bytes(data[offset:offset+num_bytes], byteorder='big')
+        offset += num_bytes
+
+    # Extract value
+    if len(data) < offset + length:
+        raise ValueError("Value length exceeds available data")
+
+    value = data[offset:offset + length]
+    return list(value)
