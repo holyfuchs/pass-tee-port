@@ -1,3 +1,5 @@
+from cryptography.hazmat.primitives.asymmetric import dh, ec
+from cryptography.hazmat.primitives import serialization
 from pyasn1.type.univ import ObjectIdentifier
 from pyasn1.codec.der.encoder import encode
 from typing import Tuple
@@ -83,3 +85,17 @@ def unwrapDO(tag: int, wrapped_data: list[int]) -> list[int]:
 
     value = data[offset:offset + length]
     return list(value)
+
+def getPublicKeyBytes(private_key: dh.DHPrivateKey | ec.EllipticCurvePrivateKey) -> bytes:
+    public_key = private_key.public_key()
+
+    if isinstance(private_key, dh.DHPrivateKey):
+        y = public_key.public_numbers().y
+        byte_len = (y.bit_length() + 7) // 8
+        return y.to_bytes(byte_len, byteorder='big')
+
+    elif isinstance(private_key, ec.EllipticCurvePrivateKey):
+        return public_key.public_bytes(
+            encoding=serialization.Encoding.X962,
+            format=serialization.PublicFormat.UncompressedPoint
+        )

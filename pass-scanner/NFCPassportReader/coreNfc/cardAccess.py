@@ -1,3 +1,6 @@
+from cryptography.hazmat.primitives.asymmetric import dh, ec
+from cryptography.hazmat.backends import default_backend
+from cryptography.exceptions import InvalidKey
 from typing import List, Any, Union, Literal
 import logging
 import asn1
@@ -130,49 +133,49 @@ class SecurityInfo:
 
 
     # Helpers
-    def getParameterSpec(self) -> int:
+    def getParameterSpec(self) -> Union[int, ec.EllipticCurve]:
         # PARAM_ID_GFP_1024_160
         if self.parameterId == 0:
-            return None # rfc5114_1024_160
+            return 0 # rfc5114_1024_160
         # PARAM_ID_GFP_2048_224
         elif self.parameterId == 1:
-            return None # rfc5114_2048_224
+            return 1 # rfc5114_2048_224
         # PARAM_ID_GFP_2048_256
         elif self.parameterId == 2:
-            return None # rfc5114_2048_256
+            return 2 # rfc5114_2048_256
         # PARAM_ID_ECP_NIST_P192_R1
         elif self.parameterId == 8:
-            return None
+            return ec.SECP192R1()
         # PARAM_ID_ECP_NIST_P224_R1
         elif self.parameterId == 10:
-            return None
+            return ec.SECP224R1()
         # PARAM_ID_ECP_NIST_P256_R1
         elif self.parameterId == 12:
-            return None
+            return ec.SECP256R1()
         # PARAM_ID_ECP_NIST_P384_R1
         elif self.parameterId == 15:
-            return None
-        # PARAM_ID_ECP_BRAINPOOL_P192_R1
-        elif self.parameterId == 9:
-            return None
-        # PARAM_ID_ECP_BRAINPOOL_P224_R1
-        elif self.parameterId == 11:
-            return None
+            return ec.SECP384R1()
+        # # PARAM_ID_ECP_BRAINPOOL_P192_R1
+        # elif self.parameterId == 9:
+        #     return ec.BrainpoolP192R1()
+        # # PARAM_ID_ECP_BRAINPOOL_P224_R1
+        # elif self.parameterId == 11:
+        #     return ec.BrainpoolP224R1()
         # PARAM_ID_ECP_BRAINPOOL_P256_R1
         elif self.parameterId == 13:
-            return None
-        # PARAM_ID_ECP_BRAINPOOL_P320_R1
-        elif self.parameterId == 14:
-            return None
+            return ec.BrainpoolP256R1()
+        # # PARAM_ID_ECP_BRAINPOOL_P320_R1
+        # elif self.parameterId == 14:
+        #     return ec.BrainpoolP320R1()
         # PARAM_ID_ECP_BRAINPOOL_P384_R1
         elif self.parameterId == 16:
-            return None
+            return ec.BrainpoolP384R1()
         # PARAM_ID_ECP_BRAINPOOL_P512_R1
         elif self.parameterId == 17:
-            return None
+            return ec.BrainpoolP512R1()
         # PARAM_ID_ECP_NIST_P521_R1
         elif self.parameterId == 18:
-            return None
+            return ec.SECP224R1()
         else:
             raise ValueError(f"Unable to find parameter spec for parameter ID: {self.parameterId}")
         
@@ -326,6 +329,26 @@ class SecurityInfo:
             return 256
         else:
             raise ValueError(f"Unable to find key length for OID: {self.oid}")
+        
+    def createMappingKey(self) -> ec.EllipticCurvePrivateKey:
+        algorithm = self.getKeyAgreementAlgorithm()
+        parameterSpec = self.getParameterSpec()
+        if algorithm == "DH":
+            if parameterSpec == 0:
+                params = dh.generate_parameters(generator=2, key_size=1024, backend=default_backend())
+            elif parameterSpec == 1:
+                params = dh.generate_parameters(generator=2, key_size=2048, backend=default_backend())
+            elif parameterSpec == 2:
+                params = dh.generate_parameters(generator=2, key_size=2048, backend=default_backend())
+            else:
+                raise ValueError("Invalid DH parameter spec")
+            private_key = params.generate_private_key()
+            return private_key
+        elif algorithm == "ECDH":
+            private_key = ec.generate_private_key(parameterSpec, default_backend())
+            return private_key
+        else:
+            raise ValueError("Unsupported agreement algorithm")
 
 
 # SecurityInfos ::= SET of SecurityInfo

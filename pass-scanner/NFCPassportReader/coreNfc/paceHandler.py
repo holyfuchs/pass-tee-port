@@ -1,7 +1,9 @@
+from .llcrypto import ECDHMappingAgreement, getPublicKeyData
+from cryptography.hazmat.primitives import serialization
+from .helpers import unwrapDO, wrapDO, getPublicKeyBytes
 from .tagReader import TagReader, StatusCode
 from Crypto.Cipher import DES3, AES
 from .cardAccess import CardAccess
-from .helpers import unwrapDO
 import hashlib
 import logging
 
@@ -56,7 +58,7 @@ class PaceHandler:
         paceKey = self._createKey(mrzKey)
         logging.debug(f"PaceKey: {paceKey}")
 
-        _, cmdStatus = self.tagReader.sendMSESetATMutualAuth(self.paceOID, self.MRZ_PACE_KEY_REFERENCE)
+        _, cmdStatus = self.tagReader.sendMSESetATMutualAuth(self.paceInfo.oid, self.MRZ_PACE_KEY_REFERENCE)
         if cmdStatus != StatusCode.SUCCESS:
             raise ValueError(f"MSESetATMutualAuth failed with status: {cmdStatus}")
 
@@ -68,17 +70,51 @@ class PaceHandler:
         cipherAlgName = self.paceInfo.getCipherAlgorithm()
         if cipherAlgName == "3DES":
             cipher = DES3.new(paceKey, DES3.MODE_CBC, bytes(encryptedNonce[:8]))
-            decryptedNonce = cipher.decrypt(bytes(encryptedNonce))
+            decryptedPassportNonce = cipher.decrypt(bytes(encryptedNonce))
         elif cipherAlgName == "AES":
             cipher = AES.new(paceKey, AES.MODE_CBC, bytes(encryptedNonce[:16]))
-            decryptedNonce = cipher.decrypt(bytes(encryptedNonce))
+            decryptedPassportNonce = cipher.decrypt(bytes(encryptedNonce))
         else:
             raise ValueError(f"Unsupported cipher algorithm: {cipherAlgName}")
-        logging.debug(f"Decrypted nonce: {decryptedNonce}")
+        logging.debug(f"Decrypted nonce: {decryptedPassportNonce}")
 
         # ----------------------------------- Step2 ---------------------------------- #
-        # mappingType = self.paceInfo.getMappingType()
-        # if (mappingType == "CAM" or mappingType == "GM"):
-        #     mappingKey = self.paceInfo.getMappingKey()
-        # else:
-        #     raise ValueError(f"Unsupported mapping type: {mappingType}")
+        mappingType = self.paceInfo.getMappingType()
+        if (mappingType == "CAM" or mappingType == "GM"):
+            mappingKey = self.paceInfo.createMappingKey()
+            publicKeyBytes = getPublicKeyBytes(mappingKey)
+            logging.debug(f"Mapping public key: {publicKeyBytes}")
+
+            data = wrapDO(0x81, list(publicKeyBytes))
+            cmdData, cmdStatus = self.tagReader.sendGeneralAuthenticate(data, isLast=False)
+            if cmdStatus != StatusCode.SUCCESS:
+                raise ValueError(f"GeneralAuthenticate failed with status: {cmdStatus}")
+            
+            piccMappingEncodedPublicKey = unwrapDO(0x82, cmdData)
+            logging.debug(f"PICC mapping encoded public key: {piccMappingEncodedPublicKey}")
+
+            bigNumPassportNonce = int.from_bytes(decryptedPassportNonce, byteorder='big')
+            agreementAlg = self.paceInfo.getKeyAgreementAlgorithm()
+            if agreementAlg == "ECDH":
+                mapping_key_bytes = mappingKey.private_bytes(
+                    encoding=serialization.Encoding.DER,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption()
+                )
+                keyPairPtr = ECDHMappingAgreement(list(mapping_key_bytes), list(piccMappingEncodedPublicKey), bigNumPassportNonce)
+                if not keyPairPtr:
+                    raise ValueError("ECDHMappingAgreement failed")
+            else:
+                raise ValueError(f"Unsupported key agreement algorithm: {agreementAlg}")
+        else:
+            raise ValueError(f"Unsupported mapping type: {mappingType}")
+        
+        # ----------------------------------- Step3 ---------------------------------- #
+        publicKeyData = getPublicKeyData(keyPairPtr)
+        logging.debug(f"Ephemeral public key: {publicKeyData}")
+
+        publicKeyDataCmd = wrapDO(0x83, publicKeyData)
+        cmdData, cmdStatus = self.tagReader.sendGeneralAuthenticate(publicKeyDataCmd, isLast=False)
+        if cmdStatus != StatusCode.SUCCESS:
+            raise ValueError(f"GeneralAuthenticate failed with status: {cmdStatus}")
+        print(cmdData)
