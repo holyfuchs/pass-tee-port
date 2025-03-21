@@ -1,4 +1,5 @@
-from ctypes import c_void_p, c_int, c_size_t, POINTER, c_ubyte, byref, cast, c_long, c_char_p
+from ctypes import c_void_p, c_int, c_size_t, POINTER, c_ubyte, byref, cast, c_long, c_char_p, create_string_buffer
+from typing import List
 import ctypes
 
 libcrypto = ctypes.cdll.LoadLibrary("/opt/homebrew/Cellar/openssl@3/3.4.1/lib/libcrypto.3.dylib")
@@ -152,6 +153,25 @@ libcrypto.EC_KEY_get_conv_form.restype = c_int
 
 libcrypto.EC_POINT_point2oct.argtypes = [c_void_p, c_void_p, c_int, c_char_p, c_size_t, c_void_p]
 libcrypto.EC_POINT_point2oct.restype = c_size_t
+
+
+libcrypto.EVP_PKEY_get1_DH.argtypes = [c_void_p]
+libcrypto.EVP_PKEY_get1_DH.restype = c_void_p
+
+libcrypto.DH_size.argtypes = [c_void_p]
+libcrypto.DH_size.restype = c_int
+
+libcrypto.DH_compute_key.argtypes = [c_char_p, c_void_p, c_void_p]
+libcrypto.DH_compute_key.restype = c_int
+
+libcrypto.EVP_PKEY_derive_init.argtypes = [c_void_p]
+libcrypto.EVP_PKEY_derive_init.restype = c_int
+
+libcrypto.EVP_PKEY_derive_set_peer.argtypes = [c_void_p, c_void_p]
+libcrypto.EVP_PKEY_derive_set_peer.restype = c_int
+
+libcrypto.EVP_PKEY_derive.argtypes = [c_void_p, c_void_p, POINTER(c_size_t)]
+libcrypto.EVP_PKEY_derive.restype = c_int
 
 
 # ---------------------------------------------------------------------------- #
@@ -349,7 +369,7 @@ def ECDHMappingAgreement(mappingKey: list[int], passportPublicKeyData: list[int]
     finally:
         libcrypto.EVP_PKEY_free(mapping_key_pkey)
 
-def getPublicKeyData(keyPair: c_void_p) -> list[int] | None:
+def getPublicKeyData(keyPair: c_void_p) -> List[int] | None:
     key_type = libcrypto.EVP_PKEY_get_base_id(keyPair)
 
     if key_type in (EVP_PKEY_DH, EVP_PKEY_DHX):
@@ -393,9 +413,9 @@ def getPublicKeyData(keyPair: c_void_p) -> list[int] | None:
 
     return None
 
-def decode_public_key_from_bytes(pub_key_data: list[int], params: c_void_p) -> c_void_p | None:
+def decodePublicKeyFromBytes(pub_key_data: list[int], keyPair: c_void_p) -> c_void_p | None:
     pub_key_bytes = bytes(pub_key_data)
-    key_type = libcrypto.EVP_PKEY_base_id(params)
+    key_type = libcrypto.EVP_PKEY_get_base_id(keyPair)
 
     if key_type == EVP_PKEY_DH or key_type == EVP_PKEY_DHX:
         dh_key = libcrypto.DH_new()
@@ -411,7 +431,7 @@ def decode_public_key_from_bytes(pub_key_data: list[int], params: c_void_p) -> c
             libcrypto.DH_free(dh_key)
 
     else:
-        ec = libcrypto.EVP_PKEY_get1_EC_KEY(params)
+        ec = libcrypto.EVP_PKEY_get1_EC_KEY(keyPair)
         if not ec:
             return None
 
@@ -420,7 +440,8 @@ def decode_public_key_from_bytes(pub_key_data: list[int], params: c_void_p) -> c
         key = libcrypto.EC_KEY_new()
 
         try:
-            if (libcrypto.EC_POINT_oct2point(group, ecp, pub_key_bytes, len(pub_key_bytes), None) != 1 or
+            buf = (ctypes.c_ubyte * len(pub_key_bytes))(*pub_key_bytes)
+            if (libcrypto.EC_POINT_oct2point(group, ecp, buf, len(pub_key_bytes), None) != 1 or
                 libcrypto.EC_KEY_set_group(key, group) != 1 or
                 libcrypto.EC_KEY_set_public_key(key, ecp) != 1):
                 return None
@@ -428,8 +449,56 @@ def decode_public_key_from_bytes(pub_key_data: list[int], params: c_void_p) -> c
             pub_key = libcrypto.EVP_PKEY_new()
             if libcrypto.EVP_PKEY_set1_EC_KEY(pub_key, key) != 1:
                 return None
-            return pub_key.value
+            return pub_key
+
         finally:
             libcrypto.EC_KEY_free(ec)
             libcrypto.EC_POINT_free(ecp)
             libcrypto.EC_KEY_free(key)
+
+def computeSharedSecret(private_key_pair: c_void_p, public_key: c_void_p) -> List[int]:
+    key_type = libcrypto.EVP_PKEY_get_base_id(private_key_pair)
+
+    if key_type == EVP_PKEY_DH or key_type == EVP_PKEY_DHX:
+        dh = libcrypto.EVP_PKEY_get1_DH(private_key_pair)
+        dh_peer = libcrypto.EVP_PKEY_get1_DH(public_key)
+
+        bn_ptr = c_void_p()
+        libcrypto.DH_get0_key(dh_peer, byref(bn_ptr), None)
+
+        secret_len = libcrypto.DH_size(dh)
+        secret_buf = create_string_buffer(secret_len)
+
+        out_len = libcrypto.DH_compute_key(secret_buf, bn_ptr, dh)
+
+        if out_len <= 0:
+            return []
+
+        return list(secret_buf.raw[:out_len])
+
+    else:
+        ctx = libcrypto.EVP_PKEY_CTX_new(private_key_pair, None)
+        if not ctx:
+            return []
+
+        try:
+            if libcrypto.EVP_PKEY_derive_init(ctx) != 1:
+                return []
+
+            if libcrypto.EVP_PKEY_derive_set_peer(ctx, public_key) != 1:
+                return []
+
+            # First call to get required length
+            out_len = c_size_t()
+            if libcrypto.EVP_PKEY_derive(ctx, None, byref(out_len)) != 1:
+                return []
+
+            # Allocate and compute shared secret
+            secret_buf = create_string_buffer(out_len.value)
+            if libcrypto.EVP_PKEY_derive(ctx, secret_buf, byref(out_len)) != 1:
+                return []
+
+            return list(secret_buf.raw[:out_len.value])
+
+        finally:
+            libcrypto.EVP_PKEY_CTX_free(ctx)

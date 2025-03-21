@@ -1,4 +1,4 @@
-from .llcrypto import ECDHMappingAgreement, getPublicKeyData
+from .llcrypto import ECDHMappingAgreement, getPublicKeyData, decodePublicKeyFromBytes, computeSharedSecret
 from cryptography.hazmat.primitives import serialization
 from .helpers import unwrapDO, wrapDO, getPublicKeyBytes
 from .tagReader import TagReader, StatusCode
@@ -117,4 +117,12 @@ class PaceHandler:
         cmdData, cmdStatus = self.tagReader.sendGeneralAuthenticate(publicKeyDataCmd, isLast=False)
         if cmdStatus != StatusCode.SUCCESS:
             raise ValueError(f"GeneralAuthenticate failed with status: {cmdStatus}")
-        print(cmdData)
+
+        passportEncodedPublicKey = unwrapDO(0x84, cmdData)
+        passportPublicKey = decodePublicKeyFromBytes(passportEncodedPublicKey, keyPairPtr)
+
+        # ----------------------------------- Step4 ---------------------------------- #
+        sharedSecret = computeSharedSecret(keyPairPtr, passportPublicKey)
+        logging.debug(f"Shared secret: {sharedSecret}")
+
+        logging.debug("Getting ksEnc and ksMac keys from shared secret")
