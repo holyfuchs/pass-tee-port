@@ -110,11 +110,12 @@ class TagReader:
             self.connection.connect()
         except:
             raise Exception("Error creating connection")
-        
+
     def __sendData(self, data: List[int]) -> Tuple[List[int], StatusCode]:
+        print(f"Sending data: {[f'0x{b:02X}' for b in data]}")
         data, sw1, sw2 = self.connection.transmit(data)
         return data, StatusCode(sw1 * 256 + sw2)
-	
+
     def __sendCommand(self, instruction: Instruction, parameter1: int, parameter2: int, data: bytes, responseLength: Length = Length.NO_LE, isLast: bool = True):
         if (len(data) > Length.EXTENDED_MAX_LC.value):
             raise ValueError(f"Command data exceeds maximum value of 0x{Length.EXTENDED_MAX_LC.value:X}")

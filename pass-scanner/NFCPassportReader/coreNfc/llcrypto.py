@@ -1,6 +1,14 @@
 from ctypes import c_void_p, c_int, c_size_t, POINTER, c_ubyte, byref, cast, c_long, c_char_p, create_string_buffer
+from .TKBERTLV import TKBERTLVRecord
+from .helpers import bytesFromOID
 from typing import List
 import ctypes
+
+from pyasn1.codec.ber import decoder as ber_decoder
+from pyasn1.codec.der import encoder as der_encoder
+from pyasn1.type.univ import ObjectIdentifier
+from asn1crypto.core import Any, ObjectIdentifier as ASN1ObjectIdentifier
+
 
 libcrypto = ctypes.cdll.LoadLibrary("/opt/homebrew/Cellar/openssl@3/3.4.1/lib/libcrypto.3.dylib")
 
@@ -189,11 +197,11 @@ def load_private_evp_pkey_from_der(der_bytes: bytes) -> c_void_p:
         raise ValueError("d2i_AutoPrivateKey failed. Bytes might not be a valid DER-encoded key.")
     return pkey_ptr
 
-def computeECDHMappingKeyPoint(mappingKey: list[int], inputKey: list[int]) -> c_void_p:
-    mapping_key_pkey = load_private_evp_pkey_from_der(bytes(mappingKey))
+def computeECDHMappingKeyPoint(mappingKey: c_void_p, inputKey: list[int]) -> c_void_p:
+    # mapping_key_pkey = load_private_evp_pkey_from_der(bytes(mappingKey))
 
-    try:
-        ec_key = libcrypto.EVP_PKEY_get1_EC_KEY(mapping_key_pkey)
+    # try:
+        ec_key = libcrypto.EVP_PKEY_get1_EC_KEY(mappingKey)
         if not ec_key:
             return None
         try:
@@ -232,14 +240,14 @@ def computeECDHMappingKeyPoint(mappingKey: list[int], inputKey: list[int]) -> c_
         finally:
             libcrypto.EC_KEY_free(ec_key)
 
-    finally:
-        libcrypto.EVP_PKEY_free(mapping_key_pkey)
+    # finally:
+    #     libcrypto.EVP_PKEY_free(mappingKey)
 
-def ECDHMappingAgreement(mappingKey: list[int], passportPublicKeyData: list[int], nonce: int) -> c_void_p:
-    mapping_key_pkey = load_private_evp_pkey_from_der(bytes(mappingKey))
+def ECDHMappingAgreement(mappingKey: c_void_p, passportPublicKeyData: list[int], nonce: int) -> c_void_p:
+    # mapping_key_pkey = load_private_evp_pkey_from_der(bytes(mappingKey))
 
-    try:
-        ec_mapping_key = libcrypto.EVP_PKEY_get1_EC_KEY(mapping_key_pkey)
+    # try:
+        ec_mapping_key = libcrypto.EVP_PKEY_get1_EC_KEY(mappingKey)
         if not ec_mapping_key:
             raise Exception("Unable to get EC_KEY from mappingKey")
 
@@ -366,8 +374,8 @@ def ECDHMappingAgreement(mappingKey: list[int], passportPublicKeyData: list[int]
         finally:
             libcrypto.EC_KEY_free(ec_mapping_key)
 
-    finally:
-        libcrypto.EVP_PKEY_free(mapping_key_pkey)
+    # finally:
+    #     libcrypto.EVP_PKEY_free(mapping_key_pkey)
 
 def getPublicKeyData(keyPair: c_void_p) -> List[int] | None:
     key_type = libcrypto.EVP_PKEY_get_base_id(keyPair)
@@ -488,12 +496,10 @@ def computeSharedSecret(private_key_pair: c_void_p, public_key: c_void_p) -> Lis
             if libcrypto.EVP_PKEY_derive_set_peer(ctx, public_key) != 1:
                 return []
 
-            # First call to get required length
             out_len = c_size_t()
             if libcrypto.EVP_PKEY_derive(ctx, None, byref(out_len)) != 1:
                 return []
 
-            # Allocate and compute shared secret
             secret_buf = create_string_buffer(out_len.value)
             if libcrypto.EVP_PKEY_derive(ctx, secret_buf, byref(out_len)) != 1:
                 return []
@@ -502,3 +508,25 @@ def computeSharedSecret(private_key_pair: c_void_p, public_key: c_void_p) -> Lis
 
         finally:
             libcrypto.EVP_PKEY_CTX_free(ctx)
+
+def encodePublicKey(oid: str, key: c_void_p) -> list[int]:
+    encoded_oid = bytesFromOID(oid, False)
+    pub_key_data = getPublicKeyData(key)
+    if not pub_key_data:
+        raise ValueError("Unable to get public key data")
+
+    key_type = libcrypto.EVP_PKEY_get_base_id(key)
+    if key_type in (EVP_PKEY_DH, EVP_PKEY_DHX):
+        tag = 0x84
+    else:
+        tag = 0x86
+
+    try:
+        enc_oid_record = TKBERTLVRecord.from_bytes(encoded_oid)
+    except Exception:
+        raise ValueError("Invalid ASN.1 value for OID")
+
+    enc_pub_record = TKBERTLVRecord(tag=tag, value=bytes(pub_key_data))
+    main_record = TKBERTLVRecord(tag=0x7F49, records=[enc_oid_record, enc_pub_record])
+
+    return list(main_record.to_bytes())
