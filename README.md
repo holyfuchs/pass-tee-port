@@ -63,3 +63,12 @@ If the ID is used again, it will first clear the data on the old linked address.
 
 6. check that address has been linked to passport
 
+## Enclave verification
+
+Grab binary from enclave. 
+`curl http://3.108.76.30:1300/attestation/raw -vs -o attestation_hack.bin`
+
+Binary should be passed to contract for verification in prod like so:
+
+`nitroProver.verifyAttestation(attestation_doc (.bin), pcrs, max_age);`
+
