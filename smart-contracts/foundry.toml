@@ -2,6 +2,11 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+solc = '0.8.24'
+fs_permissions = [
+    { access = "read", path = "./test/nitro-attestation"},
+    { access = "read", path = "./script/attestation_hack.bin"}
+]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 fs_permissions = [{ access = "read", path = "./"}]
