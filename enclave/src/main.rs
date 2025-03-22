@@ -1,7 +1,5 @@
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
-use openssl::cms::CmsContentInfo;
 use openssl::x509::X509;
-use sign::PassportData;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use ethers::signers::LocalWallet;
@@ -44,7 +42,7 @@ async fn passport_sign(
             return HttpResponse::BadRequest().body(e.to_string());
         }
     };
-    let issuer = match passport::verify_ds_and_get_issuer(&ds_cert, "masterList.pem") {
+    let _issuer = match passport::verify_ds_and_get_issuer(&ds_cert, "masterList.pem") {
         Ok(issuer) => issuer,
         Err(e) => {
             return HttpResponse::BadRequest().body(format!("invalid issuer: {}", e.to_string()));

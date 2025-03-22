@@ -8,7 +8,7 @@ use alloy::sol_types::SolValue;
 use alloy_primitives::Address;
 use alloy_primitives::FixedBytes;
 
-use ethers::signers::{LocalWallet, Signer};
+use ethers::signers::LocalWallet;
 use ethers::core::types::H256;
 use ethers::utils::keccak256;
 
