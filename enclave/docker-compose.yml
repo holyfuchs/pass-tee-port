@@ -1,7 +1,9 @@
 services:
-  passproof-server:
-    image: lorbke/passproof-server
+  pass-tee-port-enclave:
+    image: lorbke/pass-tee-port-enclave
     network_mode: host
     restart: unless-stopped
     volumes:
       - /app/ecdsa.sec:/usr/src/app/ecdsa.sec
+    environment:
+      - RUST_BACKTRACE=1

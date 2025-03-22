@@ -9,9 +9,10 @@ ENV OPENSSL_INCLUDE_DIR=/usr/include
 WORKDIR /usr/src/app
 COPY . .
 RUN cargo build --release
+RUN apk add --no-cache gdb
 
 FROM alpine
-COPY --from=builder /usr/src/app/target/release/passproof-server /usr/local/bin/passproof-server
+COPY --from=builder /usr/src/app/target/release/pass-tee-port-enclave /usr/local/bin/pass-tee-port-enclave
 
 EXPOSE 8080
-CMD ["passproof-server"]
+CMD ["pass-tee-port-enclave"]
