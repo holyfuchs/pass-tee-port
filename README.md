@@ -4,6 +4,19 @@ Verified linkage of partial passport details to address on ethereum
 
 ## Overview
 
+```mermaid
+sequenceDiagram
+    participant User
+    participant TEE
+    participant Contract
+    TEE->>Contract: enclave quote (contains public key)
+    note over User: scan passport with NFC
+    User->>TEE: wallet address + passport data
+    note over TEE: validation passport signature by CSCA
+    TEE->>Contract: wallet address + signed partial passport data 
+    note over User,Contract: can check if wallet belongs to passport holder
+```
+
 We use NFC to scan the passport. 
 Sumbit the scanned information of the passport to a TEE.
 The TEE verifies the passport was signed by the government.
