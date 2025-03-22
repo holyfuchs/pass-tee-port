@@ -1,3 +1,4 @@
+from .secureMessageHandler import SecureMessageHandler
 from .keyGenerator import KeyGenerator, KeyMode
 from .tagReader import TagReader, StatusCode
 from Crypto.Util.Padding import pad
@@ -73,6 +74,4 @@ class BACHandler:
             raise ValueError(f"Failed to do mutual authentication: {status}")
         
         KSenc, KSmac, ssc = self.sessionKeys(data)
-        logging.debug(f"KSenc: {KSenc}")
-        logging.debug(f"KSmac: {KSmac}")
-        logging.debug(f"ssc: {ssc}")
+        self.tagReader.secureMessageHandler = SecureMessageHandler(KSenc, KSmac, ssc)

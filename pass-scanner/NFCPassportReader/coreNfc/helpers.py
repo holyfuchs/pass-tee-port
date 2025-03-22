@@ -38,6 +38,21 @@ def asn1Length(data: bytes) -> Tuple[int, int]:
 
     raise ValueError("Cannot decode ASN.1 length")
 
+def toAsn1Length(data: int) -> list[int]:
+    if data < 0:
+        raise ValueError("Cannot encode negative length")
+    
+    if data < 0x80:
+        return [data]
+    
+    if data <= 0xFF:
+        return [0x81, data]
+    
+    if data <= 0xFFFF:
+        return [0x82, (data >> 8) & 0xFF, data & 0xFF]
+    
+    raise ValueError("Value too large for supported ASN.1 encoding")
+
 def bytesFromOID(oid: str, tagReplace: bool = False) -> bytes:
     encoded = list(encode(ObjectIdentifier(oid)))
     if tagReplace and len(encoded) > 1:
