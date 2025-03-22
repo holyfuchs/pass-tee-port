@@ -29,7 +29,7 @@ pub fn decode_dg1(dg1: Vec<u8>) -> PassportData {
     }
 }
 
-pub fn verify_ds_and_get_issuer(ds_cert: &X509, ca_file_path: &str) -> Result<X509, Box<dyn std::error::Error>> {
+pub fn verify_ds_and_get_issuer(ds_cert: &X509, pem_data: &str) -> Result<X509, Box<dyn std::error::Error>> {
     let pem_data = fs::read_to_string(ca_file_path)?;
     let csca_certs: Vec<X509> = pem_data
         .split("-----BEGIN CERTIFICATE-----")
