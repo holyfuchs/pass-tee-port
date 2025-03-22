@@ -2,6 +2,7 @@ from cryptography.hazmat.primitives.asymmetric import dh, ec
 from cryptography.hazmat.primitives import serialization
 from pyasn1.type.univ import ObjectIdentifier
 from pyasn1.codec.der.encoder import encode
+from .TKBERTLV import TKBERTLVRecord
 from typing import Tuple
 
 
@@ -36,6 +37,21 @@ def asn1Length(data: bytes) -> Tuple[int, int]:
         return bin_to_hex(data[1:3]), 3  # Two-byte length
 
     raise ValueError("Cannot decode ASN.1 length")
+
+def toAsn1Length(data: int) -> list[int]:
+    if data < 0:
+        raise ValueError("Cannot encode negative length")
+    
+    if data < 0x80:
+        return [data]
+    
+    if data <= 0xFF:
+        return [0x81, data]
+    
+    if data <= 0xFFFF:
+        return [0x82, (data >> 8) & 0xFF, data & 0xFF]
+    
+    raise ValueError("Value too large for supported ASN.1 encoding")
 
 def bytesFromOID(oid: str, tagReplace: bool = False) -> bytes:
     encoded = list(encode(ObjectIdentifier(oid)))
@@ -86,16 +102,30 @@ def unwrapDO(tag: int, wrapped_data: list[int]) -> list[int]:
     value = data[offset:offset + length]
     return list(value)
 
-def getPublicKeyBytes(private_key: dh.DHPrivateKey | ec.EllipticCurvePrivateKey) -> bytes:
-    public_key = private_key.public_key()
+# def unwrapDO(tag: int, wrappedData: list[int]) -> list[int]:
+#     print(f"Wrapped data: {[hex(b) for b in wrappedData]}")
+#     record = TKBERTLVRecord.from_bytes(wrappedData)
+#     print(hex(record.tag), hex(tag))
+#     print([hex(b) for b in record.value])
+#     if record.tag != tag:
+#         raise ValueError(f"Unexpected tag: got {record.tag:#x}, expected {tag:#x}")
+#     return list(record.value)
 
-    if isinstance(private_key, dh.DHPrivateKey):
-        y = public_key.public_numbers().y
-        byte_len = (y.bit_length() + 7) // 8
-        return y.to_bytes(byte_len, byteorder='big')
+# def wrapDO(tag: int, arr: list[int]) -> list[int]:
+# 	record = TKBERTLVRecord(tag=tag, value=bytes(arr))
+# 	return list(record.to_bytes())
 
-    elif isinstance(private_key, ec.EllipticCurvePrivateKey):
-        return public_key.public_bytes(
-            encoding=serialization.Encoding.X962,
-            format=serialization.PublicFormat.UncompressedPoint
-        )
+
+# def getPublicKeyBytes(private_key: dh.DHPrivateKey | ec.EllipticCurvePrivateKey) -> bytes:
+#     public_key = private_key.public_key()
+
+#     if isinstance(private_key, dh.DHPrivateKey):
+#         y = public_key.public_numbers().y
+#         byte_len = (y.bit_length() + 7) // 8
+#         return y.to_bytes(byte_len, byteorder='big')
+
+#     elif isinstance(private_key, ec.EllipticCurvePrivateKey):
+#         return public_key.public_bytes(
+#             encoding=serialization.Encoding.X962,
+#             format=serialization.PublicFormat.UncompressedPoint
+#         )
