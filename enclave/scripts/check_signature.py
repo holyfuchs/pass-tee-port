@@ -3,14 +3,14 @@ from eth_keys import keys
 from eth_utils import keccak
 
 # --- Step 1: Derive public key from the private key ---
-private_key_hex = "817c959cb7ef5cf6d543949661ead8ce89c0ce660d6504191b03939721e5fccc"
+private_key_hex = ""
 private_key_bytes = bytes.fromhex(private_key_hex[2:] if private_key_hex.startswith("0x") else private_key_hex)
 private_key = keys.PrivateKey(private_key_bytes)
 public_key = private_key.public_key
 print("Derived Public Key:", public_key)
 
 # --- Step 2: Send a POST request to the server ---
-url = "http://127.0.0.1:8080/passport_sign"
+url = "http://3.109.96.102:8080/passport_sign"
 payload = {
     "passport_number": "123456",
     "given_name": "John",

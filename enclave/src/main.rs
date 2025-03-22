@@ -1,7 +1,11 @@
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use ethers::signers::{LocalWallet, Signer};
+use ethers::signers::LocalWallet;
+use ethers::signers::Signer;
+use ethers::core::k256::SecretKey;
+use ethers::core::k256::ecdsa::SigningKey;
+use std::fs;
 
 #[derive(Debug, Clone)]
 pub struct PassportDataID {
@@ -117,19 +121,32 @@ async fn passport_sign(
 }
 
 fn load_wallet_from_file(path: &str) -> Result<LocalWallet, Box<dyn Error>> {
-    let key_hex = std::fs::read_to_string(path)?.trim().to_string();
-
-    println!("Contents of {}: {}", path, key_hex);
-
-    let wallet: LocalWallet = key_hex.parse()?;
+    // Read the file as raw bytes.
+    let key_bytes = fs::read(path)?;
+    
+    // Ensure the key length is 32 bytes.
+    if key_bytes.len() != 32 {
+        return Err("Invalid private key length, expected 32 bytes".into());
+    }
+    
+    // Create a SecretKey using ethers' re-export of k256.
+    let secret_key = SecretKey::from_slice(&key_bytes)?;
+    
+    // Create a SigningKey from the SecretKey.
+    let signing_key = SigningKey::from(secret_key);
+    
+    // Convert the signing key into a LocalWallet.
+    let wallet: LocalWallet = signing_key.into();
+    
     Ok(wallet)
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let wallet = load_wallet_from_file("/usr/src/app/ecdsa.sec").expect("Failed to load wallet");
-    let wallet_data = web::Data::new(wallet);
-    println!("created wallet from enclave private key");
+    let wallet = load_wallet_from_file("./ecdsa.sec").expect("Failed to load wallet");
+    // Clone the wallet so that wallet can be used later.
+    let wallet_data = web::Data::new(wallet.clone());
+    println!("Loaded wallet with address: {:?}", wallet.address());
 
     HttpServer::new(move || {
         App::new()
