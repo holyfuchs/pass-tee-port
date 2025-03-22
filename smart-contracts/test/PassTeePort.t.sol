@@ -77,6 +77,35 @@ contract PassTeePortTest is Test {
         assertEq(data, "P*** G*****");
     }
 
+    function test_full_flow() public {
+        bytes memory attestation = vm.readFileBinary(
+            "./test/nitro-attestation/attestation_hack.bin"
+        );
+        bytes memory pcrs = abi.encodePacked(
+        // @dev if PCR4 is included (pcr4 = hashed user data field) set bitmask to hex"00000017"
+            hex"00000007", // bitmask for PCR0, PCR1, PCR2, PCR4 
+            hex"181023664fd6477acdb28bb3d7b7e5eff6001a7a8c2d32309e076460fa6cda213cee6c4c0b97c96421bf6b1b74305030" // PCR0
+            hex"70ea27296f1809c73bb61f5f08892536e1969c154f08bdccd4ff907df79881a4b14a0fc6f2ab6dd00d5b2e5a73fe88a7", // PCR1
+            hex"c631afd653305f3a40f21579897d9308daa3145eff263b1f2875ac86d2ad800e3a7ebaf7fcd39e5485896cd94607e74e" // PCR2
+            // hex"12bdd83092ec44f4bd47d8246b6905590cd6685f08725c313fe13f81915ea20ca6bca924db9ec84b024f7004f20ca620" // PCR4
+        );
+        passTeePort.add_signer(attestation, pcrs);
+
+        address owner = address(0x00241ff4135743dffc170d4ca6c9339e5e06c9c7f7);
+        PassTeePort.PassportTEEData memory pass = PassTeePort.PassportTEEData(
+            {id: bytes32(0xef35e2ddc454b196b1ad9557298f30571388a1a368e2dad69494e4bf5aed92ba), owner: owner, data: hex"502a2a2a20472a2a2a2a2a"}
+        );
+        // passTeePort.debug_add_signer(address(0x00f3706192c54dbdf86979db3c69323fb42b6f2b16));
+        bytes32 pass_hash = passTeePort._hashPassportTEEData(pass);
+        // got this from rust code
+        // assertEq(pass_hash, 0x25702609b53d0ee8ddc3e9e7f52acddf1da26755b8c6fdc5044ce8c40db534ad);
+        passTeePort.submit_passport_data(pass, hex"15f745150d878a717ac6024977c75f0da216c578d4b33df866d3ae95741fa8511ae5153a06da8fad89bbe23c2f95c1ae398acc7b1642627cd6a7e0320c4261661c");
+
+        bytes memory data = passTeePort.wallet_to_passport(owner);
+        assertEq(data, "P*** G*****");
+        
+    }
+
     // {"info":{"id":"0xef35e2ddc454b196b1ad9557298f30571388a1a368e2dad69494e4bf5aed92ba",
     // "owner":"0x241ff4135743dffc170d4ca6c9339e5e06c9c7f7",
     // "data":"0x502a2a2a20472a2a2a2a2a"},

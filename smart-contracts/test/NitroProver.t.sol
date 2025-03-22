@@ -8,13 +8,11 @@ import "../src/INitroProver.sol";
 
 contract NitroProverTest is Test {
     INitroProver nitroProver;
-    bytes internal attestation_doc;
 
     // @dev set warp time to correct timestamp
     function setUp() public {
         vm.warp(1742684568); // timestamp: date -d '2025-03-22 20:50:00 UTC' +%s
         nitroProver = INitroProver(0x4D16A370eeE9383217da724C180A76c6a4542b5C);
-        attestation_doc = vm.readFileBinary("./test/nitro-attestation/sample_attestation.bin");
     }
 
     function test_VerifyMyAttestation() public {
