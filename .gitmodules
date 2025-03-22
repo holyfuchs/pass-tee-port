@@ -7,3 +7,6 @@
 [submodule "smart-contracts/lib/SolSha2Ext"]
 	path = smart-contracts/lib/SolSha2Ext
 	url = https://github.com/marlinprotocol/SolSha2Ext
+[submodule "smart-contracts/lib/P384"]
+	path = smart-contracts/lib/P384
+	url = https://github.com/marlinprotocol/P384
