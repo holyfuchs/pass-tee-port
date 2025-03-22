@@ -1,8 +1,5 @@
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
-use openssl::stack::Stack;
-use openssl::pkcs7::{Pkcs7, Pkcs7Flags};
-use openssl::x509::X509;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::error::Error;
 use ethers::signers::LocalWallet;
 use ethers::signers::Signer;
