@@ -18,15 +18,6 @@ pub struct PassportInput {
     pub address: String,
 }
 
-#[derive(Serialize)]
-pub struct SignResponse {
-    pub encoded_data: String,
-    pub data_id: String,
-    pub wallet_address: String,
-    pub signature: String,
-    pub hash: String,
-}
-
 #[post("/passport_sign")]
 async fn passport_sign(
     encrypted_data: web::Json<PassportInput>,
