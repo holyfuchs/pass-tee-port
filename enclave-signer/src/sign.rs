@@ -11,6 +11,7 @@ use alloy::sol;
 use alloy::sol_types::eip712_domain;
 use alloy::sol_types::SolStruct;
 use alloy::sol_types::SolValue;
+use alloy_primitives::{address, Address};
 use alloy_primitives::FixedBytes;
 
 use ethers::signers::{LocalWallet, Signer};
@@ -20,32 +21,35 @@ use ethers::utils::keccak256;
 
 sol! {
     #[derive(Debug)]
-    struct PassportDataID {
+    struct PassportTEEData {
         bytes32 id;
+        address owner;
         bytes data;
     }
 }
 
 pub struct PassportData {
-    passport_data_id: PassportDataID,
+    passport_data: PassportTEEData,
 }
 
 impl PassportData {
-    pub fn new(passport_number: String, given_name: String, family_name: String) -> Self {
+    pub fn new(passport_number: String, given_name: String, family_name: String, address: String) -> Self {
         Self {
-            passport_data_id: Self::generate_passport_data_id(
+            passport_data: Self::generate_passport_TEE_data(
                 passport_number,
                 given_name,
                 family_name,
+                address,
             ),
         }
     }
 
-    fn generate_passport_data_id(
+    fn generate_passport_TEE_data(
         passport_number: String,
         given_name: String,
         family_name: String,
-    ) -> PassportDataID {
+        address: String,
+    ) -> PassportTEEData {
         let mut hasher: sha3::digest::core_api::CoreWrapper<sha3::Keccak256Core> = Keccak256::new();
         hasher.update(passport_number.as_bytes());
         let id = hasher.finalize();
@@ -59,18 +63,21 @@ impl PassportData {
             "*".repeat(family_name.len().saturating_sub(1))
         );
 
+        let address = Address::parse_checksummed(address, None).expect("valid checksum");
+
         let name: alloy_primitives::Bytes = hidden_name.as_bytes().to_vec().into();
-        let passport_data_id = PassportDataID {
+        let passport_data = PassportTEEData {
             id,
+            owner: address,
             data: name,
         };
 
-        passport_data_id
+        passport_data
     }
 
     pub fn sign(&self) -> Result<(), Box<dyn Error>> {
         // 1. Encode the data
-        let encoded_data = self.passport_data_id.abi_encode_packed();
+        let encoded_data = self.passport_data.abi_encode_packed();
 
         // 2. Hash it (keccak256)
         let hash = keccak256(&encoded_data);
@@ -90,7 +97,7 @@ impl PassportData {
 
         // 6. Print debug info
         println!("encoded_data: 0x{}", hex::encode(&encoded_data));
-        println!("data id: {:?}", self.passport_data_id);
+        println!("data: {:?}", self.passport_data);
         println!("Address: {:?}", wallet.address());
         println!("Signature: 0x{}", hex::encode(&sig_bytes));
         println!("Hash: 0x{}", hex::encode(&hash));
