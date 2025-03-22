@@ -13,3 +13,6 @@
 [submodule "smart-contracts/lib/solidity-cbor"]
 	path = smart-contracts/lib/solidity-cbor
 	url = https://github.com/marlinprotocol/solidity-cbor
+[submodule "smart-contracts/lib/buffer"]
+	path = smart-contracts/lib/buffer
+	url = https://github.com/ensdomains/buffer
