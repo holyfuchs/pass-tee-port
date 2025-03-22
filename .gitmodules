@@ -10,3 +10,6 @@
 [submodule "smart-contracts/lib/P384"]
 	path = smart-contracts/lib/P384
 	url = https://github.com/marlinprotocol/P384
+[submodule "smart-contracts/lib/solidity-cbor"]
+	path = smart-contracts/lib/solidity-cbor
+	url = https://github.com/marlinprotocol/solidity-cbor
