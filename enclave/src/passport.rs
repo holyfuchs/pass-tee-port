@@ -5,6 +5,8 @@ use openssl::x509::X509StoreContext;
 use openssl::x509::{X509, store::X509StoreBuilder};
 use openssl::stack::Stack;
 use std::fs;
+
+#[derive(Debug)]
 pub struct PassportData {
     pub id: String,
     pub given_name: String,
