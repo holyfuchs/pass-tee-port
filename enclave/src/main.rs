@@ -1,6 +1,6 @@
+#![warn(unused_extern_crates)]
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
-use openssl::x509::X509;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::error::Error;
 use ethers::signers::LocalWallet;
 use ethers::signers::Signer;
@@ -11,20 +11,11 @@ use std::fs;
 mod passport;
 mod sign;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct PassportInput {
     pub sod: Vec<u8>,
     pub ed1: Vec<u8>,
     pub address: String,
-}
-
-#[derive(Serialize, Debug)]
-pub struct SignResponse {
-    pub encoded_data: String,
-    pub data_id: String,
-    pub wallet_address: String,
-    pub signature: String,
-    pub hash: String,
 }
 
 #[post("/passport_sign")]
@@ -32,58 +23,42 @@ async fn passport_sign(
     encrypted_data: web::Json<PassportInput>,
     wallet: web::Data<LocalWallet>,
 ) -> impl Responder {
-    println!("Received request: {:?}", encrypted_data);
+    // TODO: data should be encrypted with the public key of this enclave
+    let data = encrypted_data;
 
-    let ds_cert = match X509::from_pem(&encrypted_data.sod) {
-        Ok(cert) => cert,
-        Err(e) => {
-            println!("Error parsing SOD certificate: {}", e);
-            return HttpResponse::BadRequest().body(e.to_string());
-        }
-    };
+    match passport::verify_sod(&data.sod) {
+        Ok(_) => (),
+        Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
+    }
 
-    let issuer = match passport::verify_ds_and_get_issuer(&ds_cert, "masterList.pem") {
-        Ok(issuer) => issuer,
-        Err(e) => {
-            println!("Error verifying issuer: {}", e);
-            return HttpResponse::BadRequest().body(format!("invalid issuer: {}", e.to_string()));
-        }
-    };
-    println!("Issuer verified: {:?}", issuer);
+    let passport = passport::decode_dg1(data.ed1.clone());
 
-    let dg1_data = passport::decode_dg1(encrypted_data.ed1.clone());
-    println!("Decoded DG1 passport data: {:?}", dg1_data);
-
-    let passport = sign::PassportData::new(
-        dg1_data.id,
-        dg1_data.given_name,
-        dg1_data.family_name,
-        encrypted_data.address.clone(),
-    );
+    let passport = sign::PassportData::new(passport.id, passport.given_name, passport.family_name, data.address.clone());
 
     match passport.sign(&wallet.clone()) {
         Ok(output) => {
-            println!("Sending response: {:?}", output);
             HttpResponse::Ok().json(output)
         }
-        Err(e) => {
-            println!("Error signing passport data: {}", e);
-            HttpResponse::InternalServerError().body(e.to_string())
-        }
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }
 
 fn load_wallet_from_file(path: &str) -> Result<LocalWallet, Box<dyn Error>> {
+    // Read the file as raw bytes.
     let key_bytes = fs::read(path)?;
     
+    // Ensure the key length is 32 bytes.
     if key_bytes.len() != 32 {
         return Err("Invalid private key length, expected 32 bytes".into());
     }
     
+    // Create a SecretKey using ethers' re-export of k256.
     let secret_key = SecretKey::from_slice(&key_bytes)?;
     
+    // Create a SigningKey from the SecretKey.
     let signing_key = SigningKey::from(secret_key);
     
+    // Convert the signing key into a LocalWallet.
     let wallet: LocalWallet = signing_key.into();
     
     Ok(wallet)
@@ -92,6 +67,7 @@ fn load_wallet_from_file(path: &str) -> Result<LocalWallet, Box<dyn Error>> {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let wallet = load_wallet_from_file("./ecdsa.sec").expect("Failed to load wallet");
+    // Clone the wallet so that wallet can be used later.
     let wallet_data = web::Data::new(wallet.clone());
     println!("Loaded wallet with address: {:?}", wallet.address());
 

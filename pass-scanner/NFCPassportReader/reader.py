@@ -1,4 +1,5 @@
 from .coreNfc.paceHandler import PaceHandler
+from .coreNfc.bacHandler import BACHandler
 from .coreNfc.tagReader import TagReader
 from .passport import Passport
 
@@ -11,8 +12,16 @@ class PassportReader:
         tagReader = TagReader()
         passport = Passport(mrz)
 
-        accessData = tagReader.readCardAccess()
-        paceHandler = PaceHandler(accessData, tagReader)
-        paceHandler.handlePace(mrz)
+        bacHandler = BACHandler(tagReader)
+        bacHandler.handleBac(mrz)
+        # accessData = tagReader.readCardAccess()
+        # paceHandler = PaceHandler(accessData, tagReader)
+        # paceHandler.handlePace(mrz)
+        
+        data = tagReader.selectFileAndRead([0x01,0x1E])
+        print(bytes(data).decode("utf-8"))
+        
+        data = tagReader.selectFileAndRead([0x01,0x01])
+        print(bytes(data).decode("utf-8"))
 
         return passport

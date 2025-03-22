@@ -1,9 +1,45 @@
-from cryptography.hazmat.primitives.asymmetric import dh, ec
-from cryptography.hazmat.backends import default_backend
-from cryptography.exceptions import InvalidKey
+from cryptography.hazmat.primitives.asymmetric import ec
 from typing import List, Any, Union, Literal
+from ctypes import c_void_p, c_int
 import logging
+import ctypes
 import asn1
+
+
+libcrypto = ctypes.cdll.LoadLibrary("/opt/homebrew/Cellar/openssl@3/3.4.1/lib/libcrypto.3.dylib")
+
+libcrypto.EVP_PKEY_new.argtypes = []
+libcrypto.EVP_PKEY_new.restype = c_void_p
+libcrypto.DH_get_1024_160.restype = c_void_p
+libcrypto.DH_get_2048_224.restype = c_void_p
+libcrypto.DH_get_2048_256.restype = c_void_p
+libcrypto.DH_generate_key.argtypes = [c_void_p]
+libcrypto.DH_generate_key.restype = c_int
+libcrypto.DH_free.argtypes = [c_void_p]
+libcrypto.DH_free.restype = None
+libcrypto.EVP_PKEY_set1_DH.argtypes = [c_void_p, c_void_p]
+libcrypto.EVP_PKEY_set1_DH.restype = c_int
+libcrypto.EC_KEY_new_by_curve_name.argtypes = [c_int]
+libcrypto.EC_KEY_new_by_curve_name.restype = c_void_p
+libcrypto.EC_KEY_generate_key.argtypes = [c_void_p]
+libcrypto.EC_KEY_generate_key.restype = c_int
+libcrypto.EC_KEY_free.argtypes = [c_void_p]
+libcrypto.EC_KEY_free.restype = None
+libcrypto.EVP_PKEY_set1_EC_KEY.argtypes = [c_void_p, c_void_p]
+libcrypto.EVP_PKEY_set1_EC_KEY.restype = c_int
+
+
+NID_X9_62_prime192v1 = 409
+NID_secp224r1 = 713
+NID_X9_62_prime256v1 = 415
+NID_secp384r1 = 715
+NID_secp521r1 = 716
+NID_brainpoolP192r1 = 923
+NID_brainpoolP224r1 = 925
+NID_brainpoolP256r1 = 927
+NID_brainpoolP320r1 = 929
+NID_brainpoolP384r1 = 931
+NID_brainpoolP512r1 = 933
 
 
 class SecurityInfo:
@@ -145,37 +181,37 @@ class SecurityInfo:
             return 2 # rfc5114_2048_256
         # PARAM_ID_ECP_NIST_P192_R1
         elif self.parameterId == 8:
-            return ec.SECP192R1()
+            return NID_X9_62_prime192v1 # secp192r1
         # PARAM_ID_ECP_NIST_P224_R1
         elif self.parameterId == 10:
-            return ec.SECP224R1()
+            return NID_secp224r1 # secp224r1
         # PARAM_ID_ECP_NIST_P256_R1
         elif self.parameterId == 12:
-            return ec.SECP256R1()
+            return NID_X9_62_prime256v1 # secp256r1
         # PARAM_ID_ECP_NIST_P384_R1
         elif self.parameterId == 15:
-            return ec.SECP384R1()
-        # # PARAM_ID_ECP_BRAINPOOL_P192_R1
-        # elif self.parameterId == 9:
-        #     return ec.BrainpoolP192R1()
-        # # PARAM_ID_ECP_BRAINPOOL_P224_R1
-        # elif self.parameterId == 11:
-        #     return ec.BrainpoolP224R1()
+            return NID_secp384r1 # secp384r1
+        # PARAM_ID_ECP_BRAINPOOL_P192_R1
+        elif self.parameterId == 9:
+            return NID_brainpoolP192r1 # brainpoolp192r1
+        # PARAM_ID_ECP_BRAINPOOL_P224_R1
+        elif self.parameterId == 11:
+            return NID_brainpoolP224r1 # brainpoolp224r1
         # PARAM_ID_ECP_BRAINPOOL_P256_R1
         elif self.parameterId == 13:
-            return ec.BrainpoolP256R1()
-        # # PARAM_ID_ECP_BRAINPOOL_P320_R1
-        # elif self.parameterId == 14:
-        #     return ec.BrainpoolP320R1()
+            return NID_brainpoolP256r1 # brainpoolp256r1
+        # PARAM_ID_ECP_BRAINPOOL_P320_R1
+        elif self.parameterId == 14:
+            return NID_brainpoolP320r1 # brainpoolp320r1
         # PARAM_ID_ECP_BRAINPOOL_P384_R1
         elif self.parameterId == 16:
-            return ec.BrainpoolP384R1()
+            return NID_brainpoolP384r1 # brainpoolp384r1
         # PARAM_ID_ECP_BRAINPOOL_P512_R1
         elif self.parameterId == 17:
-            return ec.BrainpoolP512R1()
+            return NID_brainpoolP512r1 # brainpoolp512r1
         # PARAM_ID_ECP_NIST_P521_R1
         elif self.parameterId == 18:
-            return ec.SECP224R1()
+            return NID_secp521r1 # secp521r1
         else:
             raise ValueError(f"Unable to find parameter spec for parameter ID: {self.parameterId}")
         
@@ -330,25 +366,60 @@ class SecurityInfo:
         else:
             raise ValueError(f"Unable to find key length for OID: {self.oid}")
         
-    def createMappingKey(self) -> ec.EllipticCurvePrivateKey:
+    def createMappingKey(self) -> c_void_p:
         algorithm = self.getKeyAgreementAlgorithm()
-        parameterSpec = self.getParameterSpec()
+        param_spec = self.getParameterSpec()
+
+        mapping_key = libcrypto.EVP_PKEY_new()
+        if not mapping_key:
+            raise Exception("Unable to create EVP_PKEY")
+
         if algorithm == "DH":
-            if parameterSpec == 0:
-                params = dh.generate_parameters(generator=2, key_size=1024, backend=default_backend())
-            elif parameterSpec == 1:
-                params = dh.generate_parameters(generator=2, key_size=2048, backend=default_backend())
-            elif parameterSpec == 2:
-                params = dh.generate_parameters(generator=2, key_size=2048, backend=default_backend())
+            # RFC5114 named groups: 0 → 1024_160, 1 → 2048_224, 2 → 2048_256
+            if param_spec == 0:
+                dh = libcrypto.DH_get_1024_160()
+            elif param_spec == 1:
+                dh = libcrypto.DH_get_2048_224()
+            elif param_spec == 2:
+                dh = libcrypto.DH_get_2048_256()
             else:
                 raise ValueError("Invalid DH parameter spec")
-            private_key = params.generate_private_key()
-            return private_key
+
+            if not dh:
+                raise Exception("Unable to get DH parameters")
+
+            # generate key pair
+            if libcrypto.DH_generate_key(dh) != 1:
+                libcrypto.DH_free(dh)
+                raise Exception("DH_generate_key failed")
+
+            if libcrypto.EVP_PKEY_set1_DH(mapping_key, dh) != 1:
+                libcrypto.DH_free(dh)
+                raise Exception("EVP_PKEY_set1_DH failed")
+
+            libcrypto.DH_free(dh)
+
         elif algorithm == "ECDH":
-            private_key = ec.generate_private_key(parameterSpec, default_backend())
-            return private_key
+            # param_spec is expected to be the NID of the curve (e.g., NID_X9_62_prime256v1)
+            ec_key = libcrypto.EC_KEY_new_by_curve_name(param_spec)
+            if not ec_key:
+                raise Exception("Unable to create EC_KEY")
+
+            if libcrypto.EC_KEY_generate_key(ec_key) != 1:
+                libcrypto.EC_KEY_free(ec_key)
+                raise Exception("EC_KEY_generate_key failed")
+
+            if libcrypto.EVP_PKEY_set1_EC_KEY(mapping_key, ec_key) != 1:
+                libcrypto.EC_KEY_free(ec_key)
+                raise Exception("EVP_PKEY_set1_EC_KEY failed")
+
+            libcrypto.EC_KEY_free(ec_key)
+
         else:
+            libcrypto.EVP_PKEY_free(mapping_key)
             raise ValueError("Unsupported agreement algorithm")
+
+        return mapping_key
 
 
 # SecurityInfos ::= SET of SecurityInfo

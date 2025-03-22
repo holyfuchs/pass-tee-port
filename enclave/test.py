@@ -2,7 +2,7 @@ import requests
 import json
 import base64
 
-sod = open('sod-certs.pem', 'rb').read()
+sod = open('EF.sod', 'rb').read()
 dg1 = open('dg1', 'rb').read()
 
 # Convert bytes to base64 strings
