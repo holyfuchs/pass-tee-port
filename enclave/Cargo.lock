@@ -3540,7 +3540,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "passproof-server"
+name = "pass-tee-port-enclave"
 version = "0.1.0"
 dependencies = [
  "actix-web",

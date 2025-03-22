@@ -66,7 +66,7 @@ fn load_wallet_from_file(path: &str) -> Result<LocalWallet, Box<dyn Error>> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let wallet = load_wallet_from_file("./ecdsa.sec").expect("Failed to load wallet");
+    let wallet = load_wallet_from_file("/usr/src/app/ecdsa.sec").expect("Failed to load wallet");
     // Clone the wallet so that wallet can be used later.
     let wallet_data = web::Data::new(wallet.clone());
     println!("Loaded wallet with address: {:?}", wallet.address());
@@ -76,7 +76,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(wallet_data.clone())
             .service(passport_sign)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
