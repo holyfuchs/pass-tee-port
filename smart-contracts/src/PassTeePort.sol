@@ -2,22 +2,25 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "./INitroProver.sol";
 
 contract PassTeePort {
-    
+    INitroProver public nitroProver;
     mapping(address => bool) public signers;
 
     mapping(bytes32 => address) public passportID_to_wallet;
     // using bytes to avoid hardcoding data layout
     mapping(address => bytes) public wallet_to_passport;
 
-    constructor() {}
+    constructor(INitroProver _nitroProver) {
+        nitroProver = _nitroProver;
+    }
 
     event PassportDataVerified(address owner, address signer);
 
-    function add_signer(bytes memory quoteBody) external {
-        // verify the quoteBody
-        // add the enclave as valid signer
+    function add_signer(bytes memory quoteBody, bytes memory pcrs) external {
+        (bytes memory enclaveKey, bytes memory userData) = nitroProver.verifyAttestation(quoteBody, pcrs, 100 days);
+        signers[address(uint160(bytes20(enclaveKey)))] = true;
     }
 
     function debug_add_signer(address _signer) external {

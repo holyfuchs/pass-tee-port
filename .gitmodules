@@ -4,15 +4,3 @@
 [submodule "smart-contracts/lib/openzeppelin-contracts"]
 	path = smart-contracts/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "smart-contracts/lib/SolSha2Ext"]
-	path = smart-contracts/lib/SolSha2Ext
-	url = https://github.com/marlinprotocol/SolSha2Ext
-[submodule "smart-contracts/lib/P384"]
-	path = smart-contracts/lib/P384
-	url = https://github.com/marlinprotocol/P384
-[submodule "smart-contracts/lib/solidity-cbor"]
-	path = smart-contracts/lib/solidity-cbor
-	url = https://github.com/marlinprotocol/solidity-cbor
-[submodule "smart-contracts/lib/buffer"]
-	path = smart-contracts/lib/buffer
-	url = https://github.com/ensdomains/buffer

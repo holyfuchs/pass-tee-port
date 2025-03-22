@@ -3,12 +3,13 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {PassTeePort} from "../src/PassTeePort.sol";
+import {INitroProver} from "../src/INitroProver.sol";
 
 contract PassTeePortTest is Test {
     PassTeePort public passTeePort;
 
     function setUp() public {
-        passTeePort = new PassTeePort();
+        passTeePort = new PassTeePort(INitroProver(0x4D16A370eeE9383217da724C180A76c6a4542b5C));
     }
 
     // function test_ValidatePassportData() public {
