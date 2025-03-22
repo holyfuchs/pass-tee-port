@@ -81,6 +81,7 @@ class Length(Enum):
     SHORT_MAX_LE = 0x0100
     EXTENDED_MAX_LC = 0x00FFFF
     EXTENDED_MAX_LE = 0x010000
+    SHORT_CHALLENGE = 0x08
 
 class FileType(Enum):
     MASTER_FILE = 0x00
@@ -201,5 +202,15 @@ class TagReader:
         commandData = bytes(wrapDO(0x7C, data))
 
         data, status = self.__sendCommand(Instruction.GENERAL_AUTHENTICATE, 0x00, 0x00, commandData, responseLength, isLast)
+        print(data, status)
         data = unwrapDO(0x7C, data)
         return data, status
+    
+    def getChallenge(self) -> Tuple[List[int], StatusCode]:
+        return self.__sendCommand(Instruction.GET_CHALLENGE, 0x00, 0x00, [], Length.SHORT_CHALLENGE)
+
+    def doMutualAuthentication(self, data: List[int]) -> Tuple[List[int], StatusCode]:
+        return self.__sendCommand(Instruction.EXTERNAL_AUTHENTICATE, 0x00, 0x00, bytes(data), Length.SHORT_MAX_LE)
+
+    def selectPassportApplication(self) -> Tuple[List[int], StatusCode]:
+        return self.__sendCommand(Instruction.SELECT, FileType.APPLICATION.value, PROPRIETARY, [0xA0, 0x00, 0x00, 0x02, 0x47, 0x10, 0x01])

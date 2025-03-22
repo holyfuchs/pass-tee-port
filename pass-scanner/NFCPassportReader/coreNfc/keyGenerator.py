@@ -11,7 +11,7 @@ class KeyMode(Enum):
 class KeyGenerator:
     @classmethod
     def _getDigestAlgo(self, cipherAlgName: str, keyLength: int) -> Literal["SHA1", "SHA256"]:
-        if cipherAlgName == "DESede" or cipherAlgName == "AES-128":
+        if cipherAlgName == "3DES" or cipherAlgName == "AES-128":
             return "SHA1"
         if cipherAlgName == "AES" and keyLength == 128:
             return "SHA1"

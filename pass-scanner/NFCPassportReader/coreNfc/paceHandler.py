@@ -1,4 +1,4 @@
-from .llcrypto import ECDHMappingAgreement, getPublicKeyData, decodePublicKeyFromBytes, computeSharedSecret, encodePublicKey
+from .llcrypto import ECDHMappingAgreement, desMAC, getPublicKeyData, decodePublicKeyFromBytes, computeSharedSecret, encodePublicKey, createNonceBN
 from cryptography.hazmat.primitives import serialization
 from .keyGenerator import KeyGenerator, KeyMode
 from .tagReader import TagReader, StatusCode
@@ -38,13 +38,12 @@ class PaceHandler:
             encodedPublicKeyData = pad(encodedPublicKeyData, block_size=8, style="iso7816")
 
         if cipherAlg == "3DES":
-            cipher = DES3
+            macced = desMAC(macKey, encodedPublicKeyData)
         else:
-            cipher = AES
+            c = CMAC.new(macKey, ciphermod=AES)
+            c.update(encodedPublicKeyData)
+            macced = c.digest()
 
-        c = CMAC.new(macKey, ciphermod=cipher)
-        c.update(encodedPublicKeyData)
-        macced = c.digest()
         auth_token = macced[:8]
 
         return list(auth_token)
@@ -75,6 +74,8 @@ class PaceHandler:
             raise ValueError(f"Unsupported cipher algorithm: {cipherAlgName}")
         logging.debug(f"Decrypted nonce: {decryptedPassportNonce}")
 
+        # ----------------------------- working!!
+
         # ----------------------------------- Step2 ---------------------------------- #
         mappingType = self.paceInfo.getMappingType()
         if (mappingType == "CAM" or mappingType == "GM"):
@@ -83,18 +84,18 @@ class PaceHandler:
             publicKeyData = getPublicKeyData(mappingKey)
             logging.debug(f"Mapping public key: {publicKeyData}")
 
-            data = wrapDO(0x81, list(publicKeyData))
+            data = wrapDO(0x81, publicKeyData)
             cmdData, cmdStatus = self.tagReader.sendGeneralAuthenticate(data, isLast=False)
             if cmdStatus != StatusCode.SUCCESS:
                 raise ValueError(f"GeneralAuthenticate failed with status: {cmdStatus}")
             
-            piccMappingEncodedPublicKey = unwrapDO(0x82, cmdData)
-            logging.debug(f"PICC mapping encoded public key: {piccMappingEncodedPublicKey}")
+            pcdMappingEncodedPublicKey = unwrapDO(0x82, cmdData)
+            logging.debug(f"PICC mapping encoded public key: {pcdMappingEncodedPublicKey}")
 
-            bigNumPassportNonce = int.from_bytes(decryptedPassportNonce, byteorder='big')
+            bigNumPassportNonce = createNonceBN(decryptedPassportNonce)
             agreementAlg = self.paceInfo.getKeyAgreementAlgorithm()
             if agreementAlg == "ECDH":
-                keyPairPtr = ECDHMappingAgreement(mappingKey, list(piccMappingEncodedPublicKey), bigNumPassportNonce)
+                keyPairPtr = ECDHMappingAgreement(mappingKey, pcdMappingEncodedPublicKey, bigNumPassportNonce)
                 if not keyPairPtr:
                     raise ValueError("ECDHMappingAgreement failed")
             else:
@@ -110,7 +111,6 @@ class PaceHandler:
         cmdData, cmdStatus = self.tagReader.sendGeneralAuthenticate(publicKeyDataCmd, isLast=False)
         if cmdStatus != StatusCode.SUCCESS:
             raise ValueError(f"GeneralAuthenticate failed with status: {cmdStatus}")
-
         passportEncodedPublicKey = unwrapDO(0x84, cmdData)
         passportPublicKey = decodePublicKeyFromBytes(passportEncodedPublicKey, keyPairPtr)
 
