@@ -3549,6 +3549,7 @@ dependencies = [
  "ethers",
  "hex",
  "k256",
+ "openssl",
  "rand_core 0.9.3",
  "secp256k1",
  "serde",

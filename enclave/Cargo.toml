@@ -15,3 +15,4 @@ k256 = "0.13.4"
 rand_core = { version = "0.9.3", features = ["os_rng"] }
 sha3 = "0.10.8"
 serde = { version = "1.0", features = ["derive"] }
+openssl = "0.10.71"
