@@ -1,3 +1,4 @@
+#![warn(unused_extern_crates)]
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
 use serde::Deserialize;
 use std::error::Error;

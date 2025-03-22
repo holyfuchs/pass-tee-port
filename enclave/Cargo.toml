@@ -5,16 +5,10 @@ edition = "2024"
 
 [dependencies]
 actix-web = "4"
-secp256k1 = "0.24"
-sha2 = "0.10"
-hex = "0.4"
 alloy = "0.12.6"
 alloy-primitives = "0.8.24"
 ethers = "2.0.14"
-k256 = { version = "0.13.4", features = ["ecdh"] }
-rand_core = { version = "0.9.3", features = ["os_rng"] }
 sha3 = "0.10.8"
 serde = { version = "1.0", features = ["derive"] }
 openssl = "0.10.71"
-aes-gcm = "0.10.3"
 serde_json = "1.0.140"
