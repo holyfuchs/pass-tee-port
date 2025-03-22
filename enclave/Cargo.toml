@@ -1,12 +1,14 @@
 [package]
-name = "enclave-server"
+name = "passproof-server"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+actix-web = "4"
 alloy = "0.12.6"
 alloy-primitives = "0.8.24"
 ethers = "2.0.14"
-k256 = "0.13.4"
-rand_core = { version = "0.9.3", features = ["os_rng"] }
 sha3 = "0.10.8"
+serde = { version = "1.0", features = ["derive"] }
+openssl = "0.10.71"
+serde_json = "1.0.140"
