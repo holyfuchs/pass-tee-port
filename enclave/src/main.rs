@@ -1,4 +1,6 @@
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
+use openssl::stack::Stack;
+use openssl::pkcs7::{Pkcs7, Pkcs7Flags};
 use openssl::x509::X509;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -26,19 +28,10 @@ async fn passport_sign(
     // TODO: data should be encrypted with the public key of this enclave
     let data = encrypted_data;
 
-    // sod here is already the extracted sod_certs.pem
-    let ds_cert = match X509::from_pem(&data.sod) {
-        Ok(cert) => cert,
-        Err(e) => {
-            return HttpResponse::BadRequest().body(e.to_string());
-        }
-    };
-    let _issuer = match passport::verify_ds_and_get_issuer(&ds_cert, "masterList.pem") {
-        Ok(issuer) => issuer,
-        Err(e) => {
-            return HttpResponse::BadRequest().body(format!("invalid issuer: {}", e.to_string()));
-        }
-    };
+    match passport::verify_sod(&data.sod) {
+        Ok(_) => (),
+        Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
+    }
 
     let passport = passport::decode_dg1(data.ed1.clone());
 

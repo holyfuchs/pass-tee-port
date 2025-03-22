@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use openssl::error::ErrorStack;
+use openssl::pkcs7::{Pkcs7, Pkcs7Flags};
 use openssl::x509::store::X509Store;
 use openssl::x509::X509StoreContext;
 use openssl::x509::{X509, store::X509StoreBuilder};
@@ -29,7 +30,19 @@ pub fn decode_dg1(dg1: Vec<u8>) -> PassportData {
     }
 }
 
-pub fn verify_ds_and_get_issuer(ds_cert: &X509, ca_file_path: &str) -> Result<X509, Box<dyn std::error::Error>> {
+pub fn verify_sod(sod: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+    let pkcs7 = Pkcs7::from_der(sod)?;
+	let additional_certs = Stack::new()?;
+	let signer_certs = pkcs7.signers(&additional_certs, Pkcs7Flags::empty())?;
+	let first_cert = signer_certs.iter().next().unwrap();
+    let cert_pem = first_cert.to_pem()?;
+    let cert = X509::from_pem(&cert_pem)?;
+    
+    let _issuer = verify_ds_and_get_issuer(&cert, "masterList.pem")?;
+    Ok(())
+}
+
+fn verify_ds_and_get_issuer(ds_cert: &X509, ca_file_path: &str) -> Result<X509, Box<dyn std::error::Error>> {
     let pem_data = fs::read_to_string(ca_file_path)?;
     let csca_certs: Vec<X509> = pem_data
         .split("-----BEGIN CERTIFICATE-----")
