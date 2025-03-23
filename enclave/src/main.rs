@@ -31,12 +31,14 @@ async fn passport_sign(
         Ok(_) => (),
         Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
     }
+    println!("SOD verified");
 
     match check::check(&data.sod, &data.ed1) {
         Ok(_) => (),
         Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
     }
-
+    println!("DG1 verified");
+    
     let passport = passport::decode_dg1(data.ed1.clone());
 
     let passport = sign::PassportData::new(passport.id, passport.given_name, passport.family_name, data.address.clone());
@@ -72,8 +74,8 @@ fn load_wallet_from_file(path: &str) -> Result<LocalWallet, Box<dyn Error>> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let wallet = load_wallet_from_file("/usr/src/app/ecdsa.sec").expect("Failed to load wallet");
-    // let wallet = load_wallet_from_file("./ecdsa.sec").expect("Failed to load wallet");
+    // let wallet = load_wallet_from_file("/usr/src/app/ecdsa.sec").expect("Failed to load wallet");
+    let wallet = load_wallet_from_file("./ecdsa.sec").expect("Failed to load wallet");
     // Clone the wallet so that wallet can be used later.
     let wallet_data = web::Data::new(wallet.clone());
     println!("Loaded wallet with address: {:?}", wallet.address());

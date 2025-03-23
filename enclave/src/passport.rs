@@ -33,15 +33,16 @@ pub fn decode_dg1(dg1: Vec<u8>) -> PassportData {
 }
 
 pub fn verify_sod(sod: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
-    let pkcs7 = Pkcs7::from_der(sod)?;
+    let sod = sod[4..].to_vec();
+    let pkcs7 = Pkcs7::from_der(&sod)?;
 	let additional_certs = Stack::new()?;
 	let signer_certs = pkcs7.signers(&additional_certs, Pkcs7Flags::empty())?;
 	let first_cert = signer_certs.iter().next().unwrap();
     let cert_pem = first_cert.to_pem()?;
     let cert = X509::from_pem(&cert_pem)?;
 
-    // let _issuer = verify_ds_and_get_issuer(&cert, "./masterList.pem")?;
-    let _issuer = verify_ds_and_get_issuer(&cert, "/masterList.pem")?;
+    let _issuer = verify_ds_and_get_issuer(&cert, "./masterList.pem")?;
+    // let _issuer = verify_ds_and_get_issuer(&cert, "/masterList.pem")?;
     Ok(())
 }
 

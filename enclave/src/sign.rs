@@ -96,7 +96,7 @@ impl PassportData {
         // println!("data: {:?}", self.passport_data);
         // println!("Address: {:?}", wallet.address());
         // println!("Signature: 0x{}", hex::encode(&sig_bytes));
-        // println!("Hash: 0x{}", hex::encode(&hash));
+        println!("Hash: 0x{}", hex::encode(&hash));
 
         Ok(signed_passport_data)
     }

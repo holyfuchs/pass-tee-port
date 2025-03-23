@@ -167,12 +167,12 @@ fn parse_sod_data(sod_data: &[u8]) -> Result<SOD, Box<dyn std::error::Error>> {
         .ok_or_else(|| "Failed to decode encapsulated content".to_string())?;
     let encapsulated_content = encap_content_info_econtent.value().to_vec();
     let signed_attribs_hash_oid = signed_data.digest_algorithms.get(0)
-        .unwrap()
+        .ok_or("Failed to get digest algorithm")?
         .oid.to_string();
     
     let signer_info = signed_data.signer_infos.0.get(0).unwrap();
     let signed_attributes = signer_info.signed_attrs.as_ref()
-        .unwrap()
+        .ok_or("Failed to get signed attributes")?
         .to_der()
         .map_err(|e| e.to_string())?;
     
@@ -206,23 +206,15 @@ fn parse_sod_data(sod_data: &[u8]) -> Result<SOD, Box<dyn std::error::Error>> {
 
 pub fn check(sod_data: &[u8], dg1: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
 	/* ------------------ Verify Integrity Of Hashes/Signatures ----------------- */
-    let mut sod_data_header = vec![0x30, 0x09, 0x06, 0x05];
-    sod_data_header.extend_from_slice(&sod_data);
-    let sod_data = sod_data_header;
-	let sod = parse_sod_data(&sod_data).unwrap();
+	let sod = parse_sod_data(&sod_data)?;
 	let sod_hash = calc_hash(&sod.encapsulated_content, &sod.signed_attribs_hash_oid);
 	if sod.message_digest.unwrap() != sod_hash {
-		println!("SOD hash is invalid");
-		Error::new(ErrorKind::InvalidData, "Invalid SOD data");
-	} else {
-		println!("SOD hash is valid");
+		return Err(Box::new(Error::new(ErrorKind::InvalidData, "Invalid SOD data")));
 	}
 	let public_key = get_cert_pubkey_from_sod(&sod_data).unwrap();
 	let verified = verify_signature(&sod.signed_attributes, &sod.signature, &public_key, &sod.sig_type);
 	if !verified {
-		println!("SOD Signature not verified");
-	} else {
-		println!("SOD Signature verified!");
+		return Err(Box::new(Error::new(ErrorKind::InvalidData, "Invalid SOD signature")));
 	}
 
 	let ldssec = LDSSecurityObject::from_der(&sod.encapsulated_content)
@@ -237,11 +229,8 @@ pub fn check(sod_data: &[u8], dg1: &[u8]) -> Result<(), Box<dyn std::error::Erro
 	let dg1_hash = calc_hash(&dg1, &ldssec_hashes_oid);
 	// get the hash for DG1 from the ldssec_hashes vector (key 1 in vector)
 	if dg1_hash != *ldssec_hashes.iter().find(|(key, _)| *key == 1).map(|(_, value)| value).unwrap() {
-		println!("DG1 hash is invalid");
-		Error::new(ErrorKind::InvalidData, "Invalid DG1 hash");
-	} else {
-		println!("DG1 hash is valid");
-	}
+		return Err(Box::new(Error::new(ErrorKind::InvalidData, "Invalid DG1 hash")));
+	} 
 
 	Ok(())
 }
