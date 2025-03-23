@@ -1,3 +1,8 @@
+cryptography==44.0.2
+pyasn1==0.6.1
+asn1crypto==1.5.1
+pycryptodome==3.22.0
 pyscard==2.2.1
 asn1==3.0.0
-cryptography==44.0.2
+nicegui==2.13.0
+pywebview==5.4
