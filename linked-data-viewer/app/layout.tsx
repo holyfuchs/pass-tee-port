@@ -1,8 +1,8 @@
 import "@/styles/globals.css";
 
 import clsx from "clsx";
+import type { Metadata, Viewport } from "next";
 import { Inter as FontSans } from "next/font/google";
-import { Metadata, Viewport } from "next";
 
 import { Providers } from "./providers";
 
@@ -14,43 +14,33 @@ export const fontSans = FontSans({
 });
 
 export const metadata: Metadata = {
-  title: {
-    default: siteConfig.name,
-    template: `%s - ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-  icons: {
-    icon: "/favicon.ico",
-  },
+    title: {
+        default: siteConfig.name,
+        template: `%s - ${siteConfig.name}`,
+    },
+    description: siteConfig.description,
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
+    themeColor: [
+        { media: "(prefers-color-scheme: light)", color: "white" },
+        { media: "(prefers-color-scheme: dark)", color: "black" },
+    ],
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }) {
-  return (
-    <html suppressHydrationWarning lang="en">
-      <head />
-      <body
-        className={clsx(
-          "min-h-screen bg-background font-sans antialiased",
-          fontSans.variable,
-        )}
-      >
-        <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-            <div className="h-dvh w-dvw flex flex-col items-center justify-center">
-                {children}
-            </div>
-        </Providers>
-      </body>
-    </html>
-  );
+    return (
+        <html suppressHydrationWarning={true} lang="en">
+            <head />
+            <body className={clsx("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
+                <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
+                    <div className="h-dvh w-dvw">{children}</div>
+                </Providers>
+            </body>
+        </html>
+    );
 }

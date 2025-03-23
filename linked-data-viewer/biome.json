@@ -1,0 +1,65 @@
+{
+    "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+    "organizeImports": {
+        "enabled": true
+    },
+    "files": {
+        "ignore": ["node_modules", ".next", "dist"]
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true,
+            "a11y": {
+                "noSvgWithoutTitle": "off"
+            },
+            "style": {
+                "noNonNullAssertion": "off",
+                "noImplicitBoolean": "warn",
+                "useBlockStatements": "error",
+                "useTemplate": "error",
+                "noParameterAssign": "error",
+                "useConst": "error",
+                "noUselessElse": "warn",
+                "noUnusedTemplateLiteral": "warn"
+            },
+            "correctness": {
+                "useExhaustiveDependencies": "off",
+                "noUndeclaredVariables": "error",
+                "noUnusedVariables": "error",
+                "useValidForDirection": "error",
+                "noConstantCondition": "error",
+                "noEmptyPattern": "error"
+            },
+            "suspicious": {
+                "noConsoleLog": "warn",
+                "noDebugger": "error",
+                "noEmptyInterface": "warn",
+                "noExplicitAny": "warn",
+                "noRedundantUseStrict": "error",
+                "noShadowRestrictedNames": "error"
+            },
+            "complexity": {
+                "noBannedTypes": "error",
+                "noUselessConstructor": "error",
+                "noForEach": "warn",
+                "noStaticOnlyClass": "warn",
+                "noUselessFragments": "warn"
+            }
+        }
+    },
+    "formatter": {
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 120
+    },
+    "javascript": {
+        "globals": ["React"],
+        "formatter": {
+            "quoteStyle": "double",
+            "trailingCommas": "all",
+            "arrowParentheses": "always",
+            "semicolons": "always"
+        }
+    }
+}
