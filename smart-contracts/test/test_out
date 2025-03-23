@@ -1,0 +1,21 @@
+No files changed, compilation skipped
+
+Ran 1 test for test/NitroProver.t.sol:NitroProverTest
+[FAIL: vm.readFileBinary: failed to read from "/Users/pfuchs/block/pass-tee-port/smart-contracts/test/nitro-attestation/sample_attestation.bin": No such file or directory (os error 2)] setUp() (gas: 0)
+Traces:
+  [8897] NitroProverTest::setUp()
+    ├─ [0] VM::warp(1742684568 [1.742e9])
+    │   └─ ← [Return] 
+    ├─ [0] VM::readFileBinary("./test/nitro-attestation/sample_attestation.bin") [staticcall]
+    │   └─ ← [Revert] vm.readFileBinary: failed to read from "/Users/pfuchs/block/pass-tee-port/smart-contracts/test/nitro-attestation/sample_attestation.bin": No such file or directory (os error 2)
+    └─ ← [Revert] vm.readFileBinary: failed to read from "/Users/pfuchs/block/pass-tee-port/smart-contracts/test/nitro-attestation/sample_attestation.bin": No such file or directory (os error 2)
+
+Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 996.51ms (0.00ns CPU time)
+
+Ran 1 test suite in 1.59s (996.51ms CPU time): 0 tests passed, 1 failed, 0 skipped (1 total tests)
+
+Failing tests:
+Encountered 1 failing test in test/NitroProver.t.sol:NitroProverTest
+[FAIL: vm.readFileBinary: failed to read from "/Users/pfuchs/block/pass-tee-port/smart-contracts/test/nitro-attestation/sample_attestation.bin": No such file or directory (os error 2)] setUp() (gas: 0)
+
+Encountered a total of 1 failing tests, 0 tests succeeded
