@@ -1,21 +1,30 @@
 "use client";
 
 import { siteConfig } from "@/config/site";
+import { useContractContext } from "@/contract/contractProvider";
 import { Alert, Button, Input, Spinner } from "@heroui/react";
 import { useState } from "react";
+import { isAddress } from "viem";
 
 export default function Home() {
-	const [verifiedData, setVerifiedData] = useState<string | null>(null);
-	const [walletAddress, setWalletAddress] = useState<string>("");
+    const [verifiedData, setVerifiedData] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean | null>(null);
+    const { PassTeePort } = useContractContext();
 
-    const checkPassTeePort = async () => {
+    const checkPassTeePort = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
         setLoading(true);
-		console.log("checkPassTeePort", walletAddress);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        // setVerifiedData("This is a test result");
-        setVerifiedData(null);
-        setLoading(false);
+        const formData = new FormData(e.target as HTMLFormElement);
+        try {
+            const walletAddress = formData.get("walletAddress") as string;
+            const res = await PassTeePort.read.wallet_to_passport([walletAddress]);
+            setVerifiedData(Buffer.from((res as string).slice(2), "hex").toString("utf8"));
+        } catch (error) {
+            console.error(error);
+            setLoading(null);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const checkOtherWallet = async () => {
@@ -32,20 +41,23 @@ export default function Home() {
             <main className="h-full w-full flex gap-3 flex-col items-center justify-center p-5">
                 {loading && <Spinner size="lg" />}
                 {loading === null && (
-                    <div className="w-full max-w-xl flex gap-3 flex-col items-center justify-center">
+                    <form
+                        className="w-full max-w-xl flex gap-3 flex-col items-center justify-center"
+                        onSubmit={checkPassTeePort}
+                    >
                         <Alert title="Enter your wallet address and click the button to check if it is verified by Pass-Tee-Port" />
                         <Input
+                            name="walletAddress"
                             label="Wallet Address"
                             placeholder="Enter a wallet address"
                             type="text"
                             fullWidth={true}
-							value={walletAddress}
-							onChange={(e) => setWalletAddress(e.target.value)}
+                            validate={(value) => (isAddress(value) ? null : "Invalid ethereum address")}
                         />
-                        <Button color="primary" variant="solid" fullWidth={true} onClick={checkPassTeePort}>
+                        <Button color="primary" variant="solid" fullWidth={true} type="submit">
                             Check
                         </Button>
-                    </div>
+                    </form>
                 )}
                 {loading === false && (
                     <div className="w-full max-w-xl flex gap-3 flex-col items-center justify-center">

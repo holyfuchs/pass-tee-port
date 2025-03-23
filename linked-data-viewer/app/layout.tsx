@@ -1,14 +1,12 @@
 import "@/styles/globals.css";
 
+import { siteConfig } from "@/config/site";
 import clsx from "clsx";
 import type { Metadata, Viewport } from "next";
 import { Inter as FontSans } from "next/font/google";
-
 import { Providers } from "./providers";
 
-import { siteConfig } from "@/config/site";
-
-export const fontSans = FontSans({
+const fontSans = FontSans({
     subsets: ["latin"],
     variable: "--font-sans",
 });
@@ -36,7 +34,7 @@ export default function RootLayout({
     return (
         <html suppressHydrationWarning={true} lang="en">
             <head />
-            <body className={clsx("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
+            <body className={clsx("min-h-screen bg-background font-sans antialiased", fontSans.className)}>
                 <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
                     <div className="h-dvh w-dvw">{children}</div>
                 </Providers>
