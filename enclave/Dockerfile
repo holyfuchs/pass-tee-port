@@ -1,10 +1,7 @@
 FROM rust:alpine AS builder
 
-RUN apk add --no-cache musl-dev openssl-dev pkgconf openssl
-
-ENV OPENSSL_DIR=/usr
-ENV OPENSSL_LIB_DIR=/usr/lib
-ENV OPENSSL_INCLUDE_DIR=/usr/include
+RUN apk add --no-cache musl-dev openssl-dev pkgconf
+RUN apk add --no-cache openssl-libs-static
 
 WORKDIR /usr/src/app
 COPY . .
@@ -13,6 +10,8 @@ RUN apk add --no-cache gdb
 
 FROM alpine
 COPY --from=builder /usr/src/app/target/release/pass-tee-port-enclave /usr/local/bin/pass-tee-port-enclave
+COPY masterList.pem /masterList.pem
+
 
 EXPOSE 8080
 CMD ["pass-tee-port-enclave"]

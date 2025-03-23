@@ -4,6 +4,6 @@ services:
     network_mode: host
     restart: unless-stopped
     volumes:
-      - /app/ecdsa.sec:/usr/src/app/ecdsa.sec
+      - /app:/usr/src/app
     environment:
       - RUST_BACKTRACE=1
