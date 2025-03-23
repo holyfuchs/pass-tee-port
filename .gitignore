@@ -1,3 +1,7 @@
 .venv/
 __pycache__/
 .env
+masterList.ml
+masterList.pem
+extractMl.py
+.vscode/
