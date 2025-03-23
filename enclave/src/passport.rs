@@ -15,6 +15,7 @@ pub struct PassportData {
 }
 
 pub fn decode_dg1(dg1: Vec<u8>) -> PassportData {
+    let dg1 = dg1[2..].to_vec();
     let s: Cow<str> = String::from_utf8_lossy(&dg1);
     println!("DG1 as string: {}", s);
 
