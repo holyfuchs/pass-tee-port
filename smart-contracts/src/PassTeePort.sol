@@ -20,7 +20,7 @@ contract PassTeePort {
 
     function add_signer(bytes memory quoteBody, bytes memory pcrs) external {
         (bytes memory enclaveKey, bytes memory userData) = nitroProver.verifyAttestation(quoteBody, pcrs, 60 * 60 * 24 * 3);
-        signers[address(uint160(bytes20(enclaveKey)))] = true;
+        signers[address(uint160(uint256(keccak256(enclaveKey))))] = true;
     }
 
     function debug_add_signer(address _signer) external {
