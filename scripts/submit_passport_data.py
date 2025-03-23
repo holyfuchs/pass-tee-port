@@ -5,6 +5,11 @@ import json
 import os
 from web3 import Web3
 from dotenv import load_dotenv
+import sys
+
+if len(sys.argv) < 2:
+    print("Usage: python script.py <your_string>")
+    sys.exit(1)
 
 # --- Account setup ---
 
@@ -19,7 +24,8 @@ account = w3.eth.account.from_key(private_key)
 
 # --- Enclave request ---
 
-IP="3.6.46.45"
+IP = sys.argv[1]
+# IP="3.6.46.45"
 # IP="127.0.0.1"
 
 sod = open('EF.sod', 'rb').read()
