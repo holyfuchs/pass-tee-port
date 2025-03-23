@@ -2,14 +2,55 @@ from NFCPassportReader import PassportReader
 from multiprocessing import Manager, Queue
 from dotenv import load_dotenv
 from nicegui import ui, run
+from web3 import Web3
 import requests
 import time
+import json
 import os
 
 load_dotenv()
 ENC_IP = os.getenv("ENC_IP", None)
 if ENC_IP is None:
     raise ValueError("ENC_IP is not set")
+
+private_key = os.getenv("PRIVATE_KEY")
+if not private_key:
+    raise Exception("PRIVATE_KEY not set in .env file.")
+w3 = Web3(Web3.HTTPProvider(os.getenv("PROVIDER_URL")))
+account = w3.eth.account.from_key(private_key)
+
+contract_address = Web3.to_checksum_address(os.getenv("CONTRACT_ADDRESS"))
+with open("PassTeePort.abi", "r") as f:
+    contract_abi = json.load(f)
+contract = w3.eth.contract(address=contract_address, abi=contract_abi)
+
+def submit_transaction(data: dict, passport_owner: str):
+    info = data["info"]
+
+    passport_id = info["id"]
+
+    passport_data_bytes = bytes.fromhex(info["data"][2:])
+
+    passport_tee_data = (passport_id, passport_owner, passport_data_bytes)
+
+    signature_hex = data["signature"]
+
+    if signature_hex.startswith("0x"):
+        signature_bytes = bytes.fromhex(signature_hex[2:])
+    else:
+        signature_bytes = bytes.fromhex(signature_hex)
+
+    nonce = w3.eth.get_transaction_count(account.address)
+    tx = contract.functions.submit_passport_data(passport_tee_data, signature_bytes).build_transaction({
+        'from': account.address,
+        'nonce': nonce,
+        'gas': 300000,  # Adjust as needed
+        'gasPrice': w3.to_wei('50', 'gwei')
+    })
+
+    signed_tx = account.sign_transaction(tx)
+    tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+    print(tx_hash.hex())
 
 def compute(queue: Queue):
     wallet = queue.get()
@@ -27,6 +68,7 @@ def compute(queue: Queue):
                 }
             )
             data = response.json()
+            submit_transaction(data, wallet)
             queue.put(data['signature'])
             break
         except Exception as e:
