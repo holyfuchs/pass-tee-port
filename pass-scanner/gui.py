@@ -1,11 +1,15 @@
 from NFCPassportReader import PassportReader
 from multiprocessing import Manager, Queue
+from dotenv import load_dotenv
 from nicegui import ui, run
 import requests
 import time
+import os
 
-
-ENC_IP = "192.168.1.100"
+load_dotenv()
+ENC_IP = os.getenv("ENC_IP", None)
+if ENC_IP is None:
+    raise ValueError("ENC_IP is not set")
 
 def compute(queue: Queue):
     wallet = queue.get()
@@ -17,8 +21,8 @@ def compute(queue: Queue):
             dg1data, soddata = reader.readPassport(mrz_key, [])
             response = requests.post(f'http://{ENC_IP}:8080/passport_sign', 
                 json={
-                    'sod': soddata, 
-                    'ed1': dg1data, 
+                    'sod': soddata[4:],
+                    'ed1': dg1data[2:],
                     'address': wallet
                 }
             )
@@ -26,11 +30,11 @@ def compute(queue: Queue):
             queue.put(data['signature'])
             break
         except Exception as e:
-            if e == "No Card":
+            if str(e) == "Error creating connection":
                 retries += 1
                 if retries > 3:
                     raise e
-                time.sleep(1)
+                time.sleep(2.5)
                 continue
             raise e
 
@@ -69,13 +73,17 @@ def DateInput(label: str, value: str):
 def success_page():
     signature = shared_state.get('signature', None)
 
-    with ui.element('div').classes("w-dvw h-dvh flex flex-col gap-3 items-center justify-center"):
+    Header()
+
+    with ui.element('div').classes("w-full flex-1 flex flex-col gap-3 items-center justify-center"):
         ui.label("Scanning completed successfully 🎉")
         ui.label("Your passport has been scanned. It is now submitted to the TEE.")
         with ui.element('div').classes("flex gap-2 items-center"):
             ui.label("Signature:")
             ui.label(f"{signature}").classes("font-bold")
         ui.button("Scan another passport").on_click(lambda: ui.navigate.to(main_page))
+
+    Footer()
 
 
 # ---------------------------------------------------------------------------- #
