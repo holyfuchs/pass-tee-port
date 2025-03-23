@@ -78,6 +78,7 @@ contract PassTeePortTest is Test {
     }
 
     function test_full_flow() public {
+        // vm.warp(1742692010);
         bytes memory attestation = vm.readFileBinary(
             "./test/nitro-attestation/attestation_hack.bin"
         );
@@ -91,25 +92,20 @@ contract PassTeePortTest is Test {
         );
         passTeePort.add_signer(attestation, pcrs);
 
+        bytes32 id = bytes32(0xef35e2ddc454b196b1ad9557298f30571388a1a368e2dad69494e4bf5aed92ba);
         address owner = address(0x00241ff4135743dffc170d4ca6c9339e5e06c9c7f7);
+        bytes memory data = hex"502a2a2a20472a2a2a2a2a";
         PassTeePort.PassportTEEData memory pass = PassTeePort.PassportTEEData(
-            {id: bytes32(0xef35e2ddc454b196b1ad9557298f30571388a1a368e2dad69494e4bf5aed92ba), owner: owner, data: hex"502a2a2a20472a2a2a2a2a"}
+            {id: id, owner: owner, data: data}
         );
-        // passTeePort.debug_add_signer(address(0x00f3706192c54dbdf86979db3c69323fb42b6f2b16));
-        bytes32 pass_hash = passTeePort._hashPassportTEEData(pass);
-        // got this from rust code
+        // passTeePort.debug_add_signer(address(0x00045492e00904cd6fee53016c2aa250693dc8f9d3d));
         // assertEq(pass_hash, 0x25702609b53d0ee8ddc3e9e7f52acddf1da26755b8c6fdc5044ce8c40db534ad);
-        passTeePort.submit_passport_data(pass, hex"15f745150d878a717ac6024977c75f0da216c578d4b33df866d3ae95741fa8511ae5153a06da8fad89bbe23c2f95c1ae398acc7b1642627cd6a7e0320c4261661c");
+        passTeePort.submit_passport_data(pass, hex"2fee277ccbcd156b26d907db047af2ca7d99c04e6f1683be4fd93dea425e01783d4c0bb60ddaba0985ea460f99df2c5c88715e550d1be7348c9fd36a2ae6bddb1b");
 
-        bytes memory data = passTeePort.wallet_to_passport(owner);
-        assertEq(data, "P*** G*****");
+        bytes memory datatest = passTeePort.wallet_to_passport(owner);
+        assertEq(datatest, "P*** G*****");
         
     }
-
-    // {"info":{"id":"0xef35e2ddc454b196b1ad9557298f30571388a1a368e2dad69494e4bf5aed92ba",
-    // "owner":"0x241ff4135743dffc170d4ca6c9339e5e06c9c7f7",
-    // "data":"0x502a2a2a20472a2a2a2a2a"},
-    // "signature":"15f745150d878a717ac6024977c75f0da216c578d4b33df866d3ae95741fa8511ae5153a06da8fad89bbe23c2f95c1ae398acc7b1642627cd6a7e0320c4261661c"}
 }
 
 

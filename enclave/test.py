@@ -2,7 +2,7 @@ import requests
 import json
 import base64
 
-# IP="13.232.148.240"
+# IP="3.6.46.45"
 IP="127.0.0.1"
 
 sod = open('EF.sod', 'rb').read()
@@ -27,3 +27,6 @@ try:
 except Exception as e:
     print("Failed to decode JSON, raw response:")
     print(response.text)
+
+
+# curl http://3.6.46.45:1300/attestation/raw -vs -o attestation_hack.bin

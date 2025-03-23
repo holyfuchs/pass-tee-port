@@ -35,6 +35,7 @@ contract NitroProverTest is Test {
         console.logBytes(enclaveKey);
         console.logBytes(userData);
     }
+
 }
 
 
