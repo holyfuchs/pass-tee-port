@@ -8,4 +8,7 @@ solc = '0.8.24'
 fs_permissions = [{ access = "read", path = "./"}]
 
 [rpc_endpoints]
-arbitrumSepolia = "https://sepolia-rollup.arbitrum.io/rpc"
+# arbitrumSepolia = "https://sepolia-rollup.arbitrum.io/rpc"
+# arbitrumSepolia = "https://arbitrum-sepolia.drpc.org"
+arbitrumSepolia = "https://api.zan.top/node/v1/arb/sepolia/d5c3550fae1e41f58bd07bf96d9d0f99"
+# arbitrumSepolia = "https://arb-sepolia.g.alchemy.com/v2/rKMPKGxsF9-Q5JIslV38o1ao8kuy1xWn"

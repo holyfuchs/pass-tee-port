@@ -110,9 +110,6 @@ contract PassTeePortTest is Test {
     function test_convert_to_address() public {
         address derived = address(uint160(uint256(keccak256(hex"def5169f999ab608a99e5e3c678892f76b3cf94e99320bede9d3dc6fcfb5faf2945f6c03654383af5e174c101c42ab4793f8899e8e9cb2623badc780c4068fc9"))));
         console.log("Enclave address:", derived);
-
-        bytes memory publicKey = hex"cfade953e8305f53f439e870f48c826e9f4b28f4c0ac9f93248fb352b8ea9677";
-        console.log("Enclave address:", address(uint160(bytes20(keccak256(publicKey)))));
     }
 }
 
