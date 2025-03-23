@@ -1,6 +1,6 @@
-from .tagReader import ADPUCommand, Instruction
 from .helpers import toAsn1Length, asn1Length
 from Crypto.Util.Padding import pad, unpad
+from .adpu import ADPUCommand, Instruction
 from Crypto.Cipher import DES3
 from typing import List, Tuple
 from .llcrypto import desMAC
