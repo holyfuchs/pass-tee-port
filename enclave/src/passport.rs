@@ -40,6 +40,7 @@ pub fn verify_sod(sod: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
     let cert_pem = first_cert.to_pem()?;
     let cert = X509::from_pem(&cert_pem)?;
 
+    // let _issuer = verify_ds_and_get_issuer(&cert, "./masterList.pem")?;
     let _issuer = verify_ds_and_get_issuer(&cert, "/masterList.pem")?;
     Ok(())
 }

@@ -10,6 +10,7 @@ use std::fs;
 
 mod passport;
 mod sign;
+mod check;
 
 #[derive(Deserialize)]
 pub struct PassportInput {
@@ -27,6 +28,11 @@ async fn passport_sign(
     let data = encrypted_data;
 
     match passport::verify_sod(&data.sod) {
+        Ok(_) => (),
+        Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
+    }
+
+    match check::check(&data.sod, &data.ed1) {
         Ok(_) => (),
         Err(e) => return HttpResponse::BadRequest().body(e.to_string()),
     }
@@ -67,6 +73,7 @@ fn load_wallet_from_file(path: &str) -> Result<LocalWallet, Box<dyn Error>> {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let wallet = load_wallet_from_file("/usr/src/app/ecdsa.sec").expect("Failed to load wallet");
+    // let wallet = load_wallet_from_file("./ecdsa.sec").expect("Failed to load wallet");
     // Clone the wallet so that wallet can be used later.
     let wallet_data = web::Data::new(wallet.clone());
     println!("Loaded wallet with address: {:?}", wallet.address());

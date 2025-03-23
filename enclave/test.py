@@ -2,6 +2,9 @@ import requests
 import json
 import base64
 
+# IP="13.232.148.240"
+IP="127.0.0.1"
+
 sod = open('EF.sod', 'rb').read()
 dg1 = open('dg1', 'rb').read()
 
@@ -9,7 +12,7 @@ dg1 = open('dg1', 'rb').read()
 sod_bytes = list(sod)
 dg1_bytes = list(dg1)
 
-response = requests.post('http://35.154.210.244:8080/passport_sign', 
+response = requests.post(f'http://{IP}:8080/passport_sign', 
     json={
         'sod': sod_bytes, 
         'ed1': dg1_bytes, 
@@ -17,6 +20,7 @@ response = requests.post('http://35.154.210.244:8080/passport_sign',
     })
 
 try:
+    response.raise_for_status()
     data = response.json()
     print("Response JSON:")
     print(json.dumps(data, indent=2))

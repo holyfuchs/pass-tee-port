@@ -12,3 +12,6 @@ sha3 = "0.10.8"
 serde = { version = "1.0", features = ["derive"] }
 openssl = "0.10.71"
 serde_json = "1.0.140"
+sha2 = "0.10.8"
+der = "0.7.9"
+cms = "0.2.3"
