@@ -1,5 +1,6 @@
 /target
 */venv
+venv
 .env
 ecdsa.sec
 dg1
